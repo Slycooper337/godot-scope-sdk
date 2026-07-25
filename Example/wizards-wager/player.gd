@@ -2,6 +2,7 @@ extends CharacterBody2D
 
 signal level_up(new_level: int, available_points: int)
 signal stats_changed
+signal game_over_finished
 
 @export var walk_speed := 180.0
 @export var sprint_speed := 300.0
@@ -31,6 +32,7 @@ signal stats_changed
 @onready var body_collision: CollisionShape2D = $BodyCollision
 @onready var attack_hitbox: Area2D = $AttackHitbox
 @onready var damage_label_template: Label = $DamageLabel
+@onready var dead_animation_player: AnimationPlayer = $DeadAnimationPlayer
 
 var attacking = false
 var facing_direction := 1.0
@@ -58,6 +60,7 @@ var state_dirty := false
 var level := 1
 var experience := 0
 var unspent_stat_points := 0
+var dead := false
 
 func _ready() -> void:
 	_recalculate_derived_stats()
@@ -68,9 +71,12 @@ func _ready() -> void:
 	camera.make_current()
 	camera_rest_position = camera.position
 	attack_hitbox.area_entered.connect(_on_attack_hitbox_area_entered)
+	dead_animation_player.animation_finished.connect(_on_dead_animation_finished)
 	visual.play("character_idle")
 
 func _physics_process(delta: float) -> void:
+	if dead:
+		return
 	var stunned := hit_stun_timer > 0.0
 	if stunned:
 		hit_stun_timer -= delta
@@ -152,8 +158,9 @@ func _update_animation(direction: float, sprinting: bool) -> void:
 
 
 func _on_animation_finished() -> void:
-	# Only react when the attack animation finishes
-	if visual.animation == "character_attack":
+	if visual.animation == "character_die":
+		dead_animation_player.play("game_over")
+	elif visual.animation == "character_attack":
 		attacking = false
 		attack_hitbox.set_deferred("monitoring", false)
 
@@ -178,14 +185,23 @@ func take_damage(amount: int, attacker: Node2D = null) -> void:
 
 	current_health = maxf(current_health - float(amount), 0.0)
 	_show_damage_number(amount)
+	if current_health <= 0.0:
+		_begin_death()
+		return
 	_apply_hit_knockback(attacker)
 
-func apply_authoritative_damage(amount: int, knockback: Dictionary = {}) -> void:
+func apply_authoritative_damage(amount: int, knockback: Dictionary = {}, authoritative_remaining_health: int = -1) -> void:
 	if current_health <= 0.0:
 		return
 
-	current_health = maxf(current_health - float(amount), 0.0)
+	if authoritative_remaining_health >= 0:
+		current_health = clampf(float(authoritative_remaining_health), 0.0, max_health)
+	else:
+		current_health = maxf(current_health - float(amount), 0.0)
 	_show_damage_number(amount)
+	if current_health <= 0.0:
+		_begin_death()
+		return
 	if attacking:
 		attacking = false
 		attack_hitbox.set_deferred("monitoring", false)
@@ -194,6 +210,41 @@ func apply_authoritative_damage(amount: int, knockback: Dictionary = {}) -> void
 	hit_stun_timer = hit_stun_duration
 	player_animations.stop()
 	player_animations.play("player_hit")
+
+
+func _begin_death() -> void:
+	if dead:
+		return
+	dead = true
+	attacking = false
+	attack_hitbox.set_deferred("monitoring", false)
+	body_collision.set_deferred("disabled", true)
+	velocity = Vector2.ZERO
+	visual.speed_scale = 1.0
+	visual.play("character_die")
+
+
+func _on_dead_animation_finished(animation_name: StringName) -> void:
+	if animation_name == &"game_over":
+		game_over_finished.emit()
+
+
+func revive(server_data: Dictionary = {}) -> void:
+	dead = false
+	body_collision.set_deferred("disabled", false)
+	velocity = Vector2.ZERO
+	hit_stun_timer = 0.0
+	attacking = false
+	attack_hitbox.set_deferred("monitoring", false)
+	dead_animation_player.play("RESET")
+	var resources_value: Variant = server_data.get("resources", server_data)
+	if resources_value is Dictionary and (resources_value as Dictionary).has("health"):
+		current_health = clampf(float((resources_value as Dictionary).get("health", max_health)), 0.0, max_health)
+	elif server_data.has("health"):
+		current_health = clampf(float(server_data.get("health", max_health)), 0.0, max_health)
+	else:
+		current_health = max_health
+	visual.play("character_idle")
 
 
 func _show_damage_number(amount: int) -> void:

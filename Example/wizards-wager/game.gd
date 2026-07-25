@@ -43,6 +43,9 @@ var stat_transaction_sequence := 0
 var pending_stat_transactions: Dictionary = {}
 var authoritative_mobs: Dictionary = {}
 var server_enemy_templates: Dictionary = {}
+var player_game_over_finished := false
+var player_revive_received := false
+var pending_player_revive_data: Dictionary = {}
 
 
 func _ready() -> void:
@@ -51,6 +54,7 @@ func _ready() -> void:
 	$CanvasLayer/PlayerPanel/VBoxContainer/Username.text = "Player: " + Scope.session.current_user.username
 	$Player.connect("level_up", _on_player_level_up)
 	$Player.connect("stats_changed", _on_player_stats_changed)
+	$Player.connect("game_over_finished", _on_player_game_over_finished)
 	$CanvasLayer/PlayerPanel/VBoxContainer/StrengthButton.pressed.connect(_on_stat_button_pressed.bind("str"))
 	$CanvasLayer/PlayerPanel/VBoxContainer/AgilityButton.pressed.connect(_on_stat_button_pressed.bind("agi"))
 	$CanvasLayer/PlayerPanel/VBoxContainer/IntelligenceButton.pressed.connect(_on_stat_button_pressed.bind("int"))
@@ -312,7 +316,7 @@ func _on_realtime_message(message: Dictionary) -> void:
 	if message_type in ["player_stats", "player_stats_changed", "player_stats_response", "player_stats_updated", "get_player_stats", "get_player_stats_response", "stat_point_spent", "stats_changed", "player_progression_changed", "experience_gained", "xp_gained"]:
 		_handle_authoritative_stats_message(message_type, message)
 		return
-	if message_type in ["world_snapshot", "mob_snapshot", "mob_spawned", "mob_damaged", "mob_died", "player_damaged", "player_xp_changed", "attack_rejected", "attack_ack"]:
+	if message_type in ["world_snapshot", "mob_snapshot", "mob_spawned", "mob_damaged", "mob_died", "player_damaged", "player_died", "player_revived", "player_respawned", "player_respawn", "player_xp_changed", "attack_rejected", "attack_ack"]:
 		_handle_world_message(message_type, message)
 		return
 	var channel := str(message.get("channel", ""))
@@ -373,7 +377,12 @@ func _handle_world_message(message_type: String, message: Dictionary) -> void:
 				var knockback_value: Variant = data.get("knockback", data.get("velocity", {}))
 				var knockback_data: Dictionary = knockback_value if knockback_value is Dictionary else {}
 				if $Player.has_method("apply_authoritative_damage"):
-					$Player.call("apply_authoritative_damage", int(data.get("damage", 0)), knockback_data)
+					$Player.call("apply_authoritative_damage", int(data.get("damage", 0)), knockback_data, int(data.get("remaining_health", -1)))
+		"player_revived", "player_respawned", "player_respawn":
+			if int(data.get("player_id", Scope.session.current_user.id)) == int(Scope.session.current_user.id):
+				pending_player_revive_data = data
+				player_revive_received = true
+				_try_complete_player_revive()
 		"player_xp_changed":
 			if _accept_world_sequence(data):
 				_apply_authoritative_xp(data)
@@ -505,6 +514,20 @@ func _apply_authoritative_mob_death(data: Dictionary) -> void:
 	var enemy: Node = authoritative_mobs.get(mob_id)
 	if enemy != null and is_instance_valid(enemy) and enemy.has_method("apply_server_death"):
 		enemy.call("apply_server_death", data)
+
+func _on_player_game_over_finished() -> void:
+	player_game_over_finished = true
+	_try_complete_player_revive()
+
+func _try_complete_player_revive() -> void:
+	if not player_game_over_finished or not player_revive_received:
+		return
+	player_game_over_finished = false
+	player_revive_received = false
+	await _restore_player_state()
+	if $Player.has_method("revive"):
+		$Player.call("revive", pending_player_revive_data)
+	pending_player_revive_data.clear()
 
 func _apply_authoritative_xp(data: Dictionary) -> void:
 	if int(data.get("player_id", 0)) != int(Scope.session.current_user.id):
