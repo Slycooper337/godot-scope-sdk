@@ -309,8 +309,6 @@ func _connect_realtime() -> void:
 
 func _on_realtime_message(message: Dictionary) -> void:
 	var message_type := str(message.get("type", ""))
-	if message_type == "connected":
-	if message_type == "error" or message_type == "command_error":
 	if message_type in ["player_stats", "player_stats_changed", "player_stats_response", "player_stats_updated", "get_player_stats", "get_player_stats_response", "stat_point_spent", "stats_changed", "player_progression_changed", "experience_gained", "xp_gained"]:
 		_handle_authoritative_stats_message(message_type, message)
 		return
@@ -402,7 +400,6 @@ func _accept_world_sequence(data: Dictionary) -> bool:
 		return true
 	if sequence <= last_world_sequence:
 		return false
-	if last_world_sequence > 0 and sequence > last_world_sequence + 1:
 	last_world_sequence = sequence
 	return true
 
@@ -437,7 +434,6 @@ func _apply_world_snapshot(data: Dictionary) -> void:
 				continue
 			snapshot_ids[mob_id] = true
 			_spawn_or_update_authoritative_mob(mob_data, snapshot_received_at)
-			_log_authoritative_mob(mob_data)
 	for mob_id_value: Variant in authoritative_mobs.keys():
 		var mob_id := str(mob_id_value)
 		if not snapshot_ids.has(mob_id):
@@ -493,25 +489,12 @@ func _spawn_or_update_authoritative_mob(data: Dictionary, snapshot_received_at: 
 		authoritative_mobs[mob_id] = enemy
 	if enemy.has_method("apply_server_snapshot"):
 		enemy.call("apply_server_snapshot", data, snapshot_received_at)
-	var godot_position := Vector2.ZERO
-	if enemy is Node2D:
-		godot_position = (enemy as Node2D).global_position
-
-func _log_authoritative_mob(data: Dictionary) -> void:
-
-func _format_server_position(data: Dictionary) -> String:
-	var position_value: Variant = data.get("position", {})
-	if not position_value is Dictionary:
-		return "(invalid)"
-	var position_data: Dictionary = position_value
-	return "(%s,%s)" % [str(position_data.get("x", "?")), str(position_data.get("y", "?"))]
 
 func _apply_authoritative_mob_damage(data: Dictionary) -> void:
 	var mob_id := str(data.get("mob_id", ""))
 	var enemy: Node = authoritative_mobs.get(mob_id)
 	if enemy != null and is_instance_valid(enemy) and enemy.has_method("apply_server_damage"):
 		enemy.call("apply_server_damage", data)
-	else:
 
 func _apply_authoritative_mob_death(data: Dictionary) -> void:
 	var mob_id := str(data.get("mob_id", ""))
@@ -623,8 +606,7 @@ func _handle_presence_message(message: Dictionary) -> void:
 	var user_id: int = int(presence.get("user_id", 0))
 	if user_id <= 0 or user_id == Scope.session.current_user.id:
 		return
-	if bool(presence.get("online", false)):
-	else:
+	if not bool(presence.get("online", false)):
 		_remove_remote_player(user_id)
 
 
@@ -784,8 +766,7 @@ func _save_player_state() -> void:
 		"stats": persistent_state.get("stats", {}),
 		"resources": persistent_state.get("resources", {})
 	})
-	if not result.success:
-	else:
+	if result.success:
 		player.call("clear_state_dirty")
 
 
@@ -794,7 +775,6 @@ func _restore_player_state() -> void:
 		return
 	var result := await Scope.database.read(PLAYER_STATE_KEY)
 	if not result.success:
-		if result.status != 404:
 		return
 	var record: ScopeDatabaseRecord = result.data
 	var state: Dictionary = record.data
@@ -847,8 +827,7 @@ func _on_stat_button_pressed(stat_name: String) -> void:
 		"transaction_id": transaction_id,
 		"stat": stat_name
 	})
-	if result.success:
-	else:
+	if not result.success:
 		pending_stat_transactions.erase(transaction_id)
 
 
