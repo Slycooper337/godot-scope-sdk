@@ -73,7 +73,7 @@ The compatibility wrappers `Scope.login()`, `Scope.register()`, `Scope.logout()`
 User records are the default database scope:
 
 ```gdscript
-var result := await Scope.database.get("player")
+var result := await Scope.database.read("player")
 if result.success:
 	var player: ScopeDatabaseRecord = result.data
 	print(player.data.get("coins", 0))
@@ -84,7 +84,7 @@ else:
 Write a record with a dictionary:
 
 ```gdscript
-var result := await Scope.database.set("player", {
+var result := await Scope.database.write("player", {
 	"coins": 100,
 	"level": 3
 })
@@ -96,7 +96,7 @@ if not result.success:
 Delete it when needed:
 
 ```gdscript
-var result := await Scope.database.delete("player")
+var result := await Scope.database.remove("player")
 ```
 
 ## 6. Read and write shared records
@@ -104,27 +104,33 @@ var result := await Scope.database.delete("player")
 Shared records use explicit helpers so they are never confused with player-specific data:
 
 ```gdscript
-var result := await Scope.database.get_shared("game_settings")
+var result := await Scope.database.read_shared("game_settings")
 if result.success:
 	var settings: ScopeDatabaseRecord = result.data
 	apply_settings(settings.data)
 ```
 
 ```gdscript
-await Scope.database.set_shared("game_settings", {
+await Scope.database.write_shared("game_settings", {
 	"season": "summer",
 	"double_xp": true
 })
 ```
 
-Use `get_shared`, `set_shared`, and `delete_shared` for shared records.
+The same methods accept an explicit scope when needed, for example:
+
+```gdscript
+await Scope.database.write("settings", {"maintenance": false}, "shared")
+```
+
+Use `read_shared`, `write_shared`, and `remove_shared` as convenience aliases for shared records.
 
 ## 7. Handle errors with ScopeResponse
 
 Every service returns the same `ScopeResponse` object:
 
 ```gdscript
-var result := await Scope.database.get("player")
+var result := await Scope.database.read("player")
 
 if result.success:
 	var record: ScopeDatabaseRecord = result.data
@@ -144,3 +150,51 @@ Use `success` to branch, `data` for the typed result, `error` for a user-facing 
 - Check `result.success` after every request and handle failures near the call site.
 - Keep Scope calls in small system-specific classes so scenes stay focused on presentation and gameplay.
 - Leave request URLs, headers, tokens, and serialization to the SDK.
+
+## 9. Leaderboards and authoritative game state
+
+Leaderboards are read-only from the client:
+
+```gdscript
+var top_scores := await Scope.leaderboards.top("gold", 100)
+var my_rank := await Scope.leaderboards.rank("gold")
+```
+
+Do not store authoritative balances, bets, or scores in generic client-accessible database records. Do not calculate coin-flip outcomes or submit leaderboard scores from the client. Those operations belong in protected Wizards Wager backend endpoints and server-side jobs.
+
+## 10. Wizards Wager
+
+The Wizards Wager service keeps balance and bet state server-authoritative:
+
+```gdscript
+var wallet := await Scope.wizards_wager.balance()
+var active_bet := await Scope.wizards_wager.current_bet()
+var placed := await Scope.wizards_wager.place_bet(25, "heads")
+```
+
+The SDK sends the wager and the selected `heads` or `tails` choice to the server; the client must not deduct gold, resolve the coin flip, or submit scores. A `404` from `current_bet()` means there is no active bet. Refresh balance and bet state after placement and periodically while waiting for server-side resolution. `ScopeWizardsWagerBet.resolves_at` exposes the server-provided job time for synchronizing the countdown. The SDK also accepts equivalent backend fields such as `scheduled_for`, `job_run_at`, `next_run_at`, or `flip_at`.
+
+## 11. Phase 5 services
+
+The SDK also exposes reusable platform services with application headers and the current JWT attached automatically:
+
+```gdscript
+var uploaded := await Scope.storage.upload("user://save.json")
+var file_info := await Scope.storage.info(uploaded.data.id)
+await Scope.storage.download(uploaded.data.id, "user://save-copy.json")
+
+var notifications := await Scope.notifications.list(true)
+await Scope.notifications.mark_read(notification_id)
+
+var friends := await Scope.friends.list()
+await Scope.friends.send_request("alex")
+await Scope.friends.accept_request(request_id)
+
+var achievements := await Scope.achievements.list()
+var achievement := await Scope.achievements.get_achievement("first-win")
+
+Scope.analytics.track("QuestCompleted", {"quest": "Dragon Cave"})
+await Scope.analytics.flush()
+```
+
+Analytics events are queued in memory and sent in batches of up to 100 when `flush()` is called. Offline persistence is not enabled implicitly. Service-key endpoints, including trusted achievement progress, analytics ingestion, and score submission, are intentionally not exposed to client applications.

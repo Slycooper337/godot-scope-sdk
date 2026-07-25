@@ -1,0 +1,57 @@
+[gd_scene format=3 uid="uid://bhepu5hm3rud4"]
+
+[ext_resource type="Script" uid="uid://ckls4hbx8ur6a" path="res://login.gd" id="1_cau7c"]
+
+[node name="Login" type="Node2D" unique_id=1679948100]
+script = ExtResource("1_cau7c")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=2073674658]
+offset_right = 1152.0
+offset_bottom = 648.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=358591272]
+offset_left = 416.0
+offset_top = 147.0
+offset_right = 799.0
+offset_bottom = 353.0
+alignment = 1
+
+[node name="Label" type="Label" parent="VBoxContainer" unique_id=848804086]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 45
+text = "LOGIN"
+horizontal_alignment = 1
+
+[node name="Email" type="TextEdit" parent="VBoxContainer" unique_id=510683339]
+custom_minimum_size = Vector2(300, 50)
+layout_mode = 2
+placeholder_text = "email@email.com"
+
+[node name="Password" type="TextEdit" parent="VBoxContainer" unique_id=1027357268]
+custom_minimum_size = Vector2(300, 50)
+layout_mode = 2
+placeholder_text = "password"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer" unique_id=835295026]
+layout_mode = 2
+
+[node name="LogIn" type="Button" parent="VBoxContainer/HBoxContainer" unique_id=1868119207]
+layout_mode = 2
+text = "LOG IN"
+
+[node name="CreateAccount" type="Button" parent="VBoxContainer/HBoxContainer" unique_id=1105685360]
+layout_mode = 2
+text = "CREATE ACCOUNT"
+
+[node name="Forgot" type="Button" parent="VBoxContainer/HBoxContainer" unique_id=1697041025]
+layout_mode = 2
+text = "FORGOT PASSWORD"
+
+[node name="Status" type="Label" parent="VBoxContainer" unique_id=1697041026]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+horizontal_alignment = 1
+
+[connection signal="pressed" from="VBoxContainer/HBoxContainer/LogIn" to="." method="_on_log_in_pressed"]
+[connection signal="pressed" from="VBoxContainer/HBoxContainer/CreateAccount" to="." method="_on_create_account_pressed"]
