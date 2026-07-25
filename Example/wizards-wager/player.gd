@@ -17,6 +17,8 @@ signal stats_changed
 @export var hit_stun_duration := 0.35
 @export var base_damage := 1
 @export var enemy_bite_damage := 10
+@export var base_attack_animation_speed := 2.0
+@export var attack_speed_per_agility := 0.05
 @export var stamina_regen_rate := 2.0
 @export var stamina_regen_per_endurance := 0.5
 @export var jump_stamina_cost := 10.0
@@ -28,6 +30,7 @@ signal stats_changed
 @onready var camera: Camera2D = $Camera2D
 @onready var body_collision: CollisionShape2D = $BodyCollision
 @onready var attack_hitbox: Area2D = $AttackHitbox
+@onready var damage_label_template: Label = $DamageLabel
 
 var attacking = false
 var facing_direction := 1.0
@@ -61,6 +64,7 @@ func _ready() -> void:
 	current_health = max_health
 	current_stamina = max_stamina
 	current_mana = max_mana
+	damage_label_template.visible = false
 	camera.make_current()
 	camera_rest_position = camera.position
 	attack_hitbox.area_entered.connect(_on_attack_hitbox_area_entered)
@@ -173,6 +177,7 @@ func take_damage(amount: int, attacker: Node2D = null) -> void:
 		return
 
 	current_health = maxf(current_health - float(amount), 0.0)
+	_show_damage_number(amount)
 	_apply_hit_knockback(attacker)
 
 func apply_authoritative_damage(amount: int, knockback: Dictionary = {}) -> void:
@@ -180,6 +185,7 @@ func apply_authoritative_damage(amount: int, knockback: Dictionary = {}) -> void
 		return
 
 	current_health = maxf(current_health - float(amount), 0.0)
+	_show_damage_number(amount)
 	if attacking:
 		attacking = false
 		attack_hitbox.set_deferred("monitoring", false)
@@ -188,6 +194,20 @@ func apply_authoritative_damage(amount: int, knockback: Dictionary = {}) -> void
 	hit_stun_timer = hit_stun_duration
 	player_animations.stop()
 	player_animations.play("player_hit")
+
+
+func _show_damage_number(amount: int) -> void:
+	var damage_label := damage_label_template.duplicate() as Label
+	damage_label.visible = true
+	damage_label.z_index = 100
+	damage_label.text = str(amount)
+	damage_label.position = damage_label_template.position + Vector2(randf_range(-4.0, 4.0), 0.0)
+	add_child(damage_label)
+
+	var tween := create_tween()
+	tween.tween_property(damage_label, "position", damage_label.position + Vector2(0.0, -16.0), 0.65)
+	tween.parallel().tween_property(damage_label, "modulate:a", 0.0, 0.65)
+	tween.tween_callback(damage_label.queue_free)
 
 
 func _apply_hit_knockback(attacker: Node2D = null) -> void:
@@ -215,7 +235,7 @@ func _start_attack() -> void:
 	attack_hitbox.position.x = absf(attack_hitbox.position.x) * attack_direction
 	attack_hitbox.set_deferred("monitoring", true)
 	visual.play("character_attack")
-	visual.speed_scale = 2.0
+	visual.speed_scale = _attack_animation_speed()
 
 
 func _on_attack_hitbox_area_entered(area: Area2D) -> void:
@@ -260,6 +280,11 @@ func _movement_speed(sprinting: bool) -> float:
 
 func _jump_velocity() -> float:
 	return jump_velocity - float(_stat("agi")) * 8.0
+
+
+func _attack_animation_speed() -> float:
+	var agility_levels_above_start := maxi(_stat("agi") - 1, 0)
+	return base_attack_animation_speed * (1.0 + float(agility_levels_above_start) * attack_speed_per_agility)
 
 
 func _update_resources(delta: float, sprinting: bool) -> void:

@@ -42,7 +42,7 @@ var player_stats_request_sent := false
 var stat_transaction_sequence := 0
 var pending_stat_transactions: Dictionary = {}
 var authoritative_mobs: Dictionary = {}
-var server_enemy_template: Node = null
+var server_enemy_templates: Dictionary = {}
 
 
 func _ready() -> void:
@@ -449,39 +449,43 @@ func _apply_mob_snapshot(data: Dictionary) -> void:
 			_spawn_or_update_authoritative_mob(mob_value, snapshot_received_at)
 
 func _prepare_server_enemy_template() -> void:
-	var existing_enemy: Node = $Enemies.get_node_or_null("EnemySprite")
-	if existing_enemy == null:
-		existing_enemy = $Enemies.get_node_or_null("Enemy")
-	if existing_enemy == null:
-		push_error("[World] No enemy template found under Game/Enemies. Expected EnemySprite.")
-		return
-	server_enemy_template = existing_enemy.duplicate()
-	existing_enemy.visible = false
-	existing_enemy.set_physics_process(false)
-	var original_body_collision := existing_enemy.get_node_or_null("BodyCollision") as CollisionShape2D
-	if original_body_collision != null:
-		original_body_collision.set_deferred("disabled", true)
-	var original_enemy_collision := existing_enemy.get_node_or_null("EnemyArea/EnemyCollision") as CollisionShape2D
-	if original_enemy_collision != null:
-		original_enemy_collision.set_deferred("disabled", true)
-	var original_bite_hitbox := existing_enemy.get_node_or_null("BiteHitbox") as Area2D
-	if original_bite_hitbox != null:
-		original_bite_hitbox.set_deferred("monitoring", false)
+	var template_names: Dictionary = {"zombie": "Zombie", "goblin": "Goblin"}
+	for mob_type_value: Variant in template_names.keys():
+		var mob_type := str(mob_type_value)
+		var template_name := str(template_names[mob_type_value])
+		var existing_enemy: Node = $Enemies.get_node_or_null(template_name)
+		if existing_enemy == null:
+			if mob_type == "zombie":
+				push_error("[World] No Zombie template found under Game/Enemies.")
+			continue
+		server_enemy_templates[mob_type] = existing_enemy.duplicate()
+		existing_enemy.visible = false
+		existing_enemy.set_physics_process(false)
+		var original_body_collision := existing_enemy.get_node_or_null("BodyCollision") as CollisionShape2D
+		if original_body_collision != null:
+			original_body_collision.set_deferred("disabled", true)
+		var original_enemy_collision := existing_enemy.get_node_or_null("EnemyArea/EnemyCollision") as CollisionShape2D
+		if original_enemy_collision != null:
+			original_enemy_collision.set_deferred("disabled", true)
+		var original_bite_hitbox := existing_enemy.get_node_or_null("BiteHitbox") as Area2D
+		if original_bite_hitbox != null:
+			original_bite_hitbox.set_deferred("monitoring", false)
 
 func _spawn_or_update_authoritative_mob(data: Dictionary, snapshot_received_at: float = -1.0) -> void:
 	var mob_id := str(data.get("mob_id", ""))
 	if mob_id.is_empty():
 		push_warning("[World] Ignoring mob event without mob_id")
 		return
-	var mob_type := str(data.get("mob_type", ""))
-	if not mob_type.is_empty() and mob_type != "zombie":
-		push_warning("[World] no visual mapping for mob_type=%s; using the default enemy template" % mob_type)
+	var mob_type := str(data.get("mob_type", "zombie")).to_lower()
 	var enemy: Node = authoritative_mobs.get(mob_id)
 	if enemy == null or not is_instance_valid(enemy):
-		if server_enemy_template == null:
-			push_error("[World] Cannot create mob %s because the enemy template is unavailable." % mob_id)
+		var selected_template: Node = server_enemy_templates.get(mob_type, server_enemy_templates.get("zombie"))
+		if selected_template == null:
+			push_error("[World] Cannot create mob %s because no enemy template is available." % mob_id)
 			return
-		enemy = server_enemy_template.duplicate()
+		if not server_enemy_templates.has(mob_type):
+			push_warning("[World] No visual mapping for mob_type=%s; using the Zombie template." % mob_type)
+		enemy = selected_template.duplicate()
 		enemy.name = "Mob_%s" % mob_id
 		$Enemies.add_child(enemy)
 		if enemy.has_method("set_server_authoritative"):

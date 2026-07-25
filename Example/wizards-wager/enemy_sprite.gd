@@ -17,6 +17,8 @@ const MOB_FOOT_OFFSET_Y := 78.35
 @export var attack_range := 80.0
 @export var attack_cooldown := 1.0
 @export var attack_duration := 0.8
+@export var can_jump := true
+@export var aggro_range := 0.0
 @export var max_health := 10
 @export var experience_reward := 10
 @export var snapshot_render_delay := 0.12
@@ -65,6 +67,8 @@ func _physics_process(delta: float) -> void:
 
 	if player == null:
 		player = get_tree().get_first_node_in_group("player") as Node2D
+	if not chasing and player != null and aggro_range > 0.0 and global_position.distance_to(player.global_position) <= aggro_range:
+		chasing = true
 	attack_cooldown_timer = maxf(attack_cooldown_timer - delta, 0.0)
 
 	if hit_stun_timer > 0.0:
@@ -310,7 +314,7 @@ func _update_patrol(delta: float) -> void:
 	velocity.x = move_toward(velocity.x, move_direction * move_speed, acceleration * delta)
 	visual.flip_h = move_direction < 0.0
 
-	if is_on_floor() and jump_timer <= 0.0:
+	if can_jump and is_on_floor() and jump_timer <= 0.0:
 		jump()
 		jump_timer = randf_range(jump_interval_min, jump_interval_max)
 
@@ -328,7 +332,7 @@ func _update_chase(delta: float) -> void:
 		return
 
 	velocity.x = move_toward(velocity.x, direction_to_player * chase_speed, chase_acceleration * delta)
-	if is_on_floor() and jump_timer <= 0.0:
+	if can_jump and is_on_floor() and jump_timer <= 0.0:
 		jump()
 		jump_timer = randf_range(jump_interval_min, jump_interval_max)
 
