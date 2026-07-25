@@ -542,6 +542,46 @@ region = Rect2(144, 36, 36, 36)
 atlas = ExtResource("3_7jktm")
 region = Rect2(180, 36, 36, 36)
 
+[sub_resource type="AtlasTexture" id="AtlasTexture_r3ggl"]
+atlas = ExtResource("3_7jktm")
+region = Rect2(0, 252, 36, 36)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_sueei"]
+atlas = ExtResource("3_7jktm")
+region = Rect2(36, 252, 36, 36)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qhxlk"]
+atlas = ExtResource("3_7jktm")
+region = Rect2(72, 252, 36, 36)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qw2kp"]
+atlas = ExtResource("3_7jktm")
+region = Rect2(108, 252, 36, 36)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ftkif"]
+atlas = ExtResource("3_7jktm")
+region = Rect2(144, 252, 36, 36)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_71bxy"]
+atlas = ExtResource("3_7jktm")
+region = Rect2(180, 252, 36, 36)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_8jd3k"]
+atlas = ExtResource("3_7jktm")
+region = Rect2(216, 252, 36, 36)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_tssr6"]
+atlas = ExtResource("3_7jktm")
+region = Rect2(252, 252, 36, 36)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_i3uta"]
+atlas = ExtResource("3_7jktm")
+region = Rect2(288, 252, 36, 36)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hl454"]
+atlas = ExtResource("3_7jktm")
+region = Rect2(324, 252, 36, 36)
+
 [sub_resource type="AtlasTexture" id="AtlasTexture_7jktm"]
 atlas = ExtResource("3_7jktm")
 region = Rect2(0, 0, 36, 36)
@@ -671,6 +711,41 @@ animations = [{
 }],
 "loop": true,
 "name": &"character_idle",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_r3ggl")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_sueei")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qhxlk")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qw2kp")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ftkif")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_71bxy")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_8jd3k")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_tssr6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_i3uta")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_hl454")
+}],
+"loop": false,
+"name": &"character_power_up",
 "speed": 5.0
 }, {
 "frames": [{
@@ -1055,6 +1130,215 @@ offset_top = -8.0
 offset_right = 1768.0989
 offset_bottom = 1072.0
 scale = Vector2(0.13697916, 0.014814815)
+color = Color(0, 0, 0, 1)
+
+[node name="TestPlatform2" type="StaticBody2D" parent="." unique_id=628695371 groups=["drop_through_platforms"]]
+position = Vector2(923, 191)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="TestPlatform2" unique_id=115632983]
+shape = SubResource("RectangleShape2D_test_platform")
+one_way_collision = true
+one_way_collision_margin = 10.0
+
+[node name="Visual" type="ColorRect" parent="TestPlatform2" unique_id=1593753066]
+offset_left = -129.99998
+offset_top = -8.0
+offset_right = 1768.0989
+offset_bottom = 1072.0
+scale = Vector2(0.13697916, 0.014814815)
+color = Color(0, 0, 0, 1)
+
+[node name="TestPlatform3" type="StaticBody2D" parent="." unique_id=170515776 groups=["drop_through_platforms"]]
+position = Vector2(1264, 334)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="TestPlatform3" unique_id=1151409060]
+shape = SubResource("RectangleShape2D_test_platform")
+one_way_collision = true
+one_way_collision_margin = 10.0
+
+[node name="Visual" type="ColorRect" parent="TestPlatform3" unique_id=693956129]
+offset_left = -129.99998
+offset_top = -8.0
+offset_right = 1768.0989
+offset_bottom = 1072.0
+scale = Vector2(0.13697916, 0.014814815)
+color = Color(0, 0, 0, 1)
+
+[node name="TestPlatform4" type="StaticBody2D" parent="." unique_id=1838271697 groups=["drop_through_platforms"]]
+position = Vector2(17186, 334)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="TestPlatform4" unique_id=2122268561]
+shape = SubResource("RectangleShape2D_test_platform")
+one_way_collision = true
+one_way_collision_margin = 10.0
+
+[node name="Visual" type="ColorRect" parent="TestPlatform4" unique_id=1154059438]
+offset_left = -129.99998
+offset_top = -8.0
+offset_right = 1768.0989
+offset_bottom = 1072.0
+scale = Vector2(0.13697916, 0.014814815)
+color = Color(0, 0, 0, 1)
+
+[node name="TestPlatform5" type="StaticBody2D" parent="." unique_id=2063814033 groups=["drop_through_platforms"]]
+position = Vector2(16782, 173)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="TestPlatform5" unique_id=1255521107]
+shape = SubResource("RectangleShape2D_test_platform")
+one_way_collision = true
+one_way_collision_margin = 10.0
+
+[node name="Visual" type="ColorRect" parent="TestPlatform5" unique_id=1758049593]
+offset_left = -129.99998
+offset_top = -8.0
+offset_right = 1768.0989
+offset_bottom = 1072.0
+scale = Vector2(0.13697916, 0.014814815)
+color = Color(0, 0, 0, 1)
+
+[node name="TestPlatform6" type="StaticBody2D" parent="." unique_id=577629071 groups=["drop_through_platforms"]]
+position = Vector2(17088, -89)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="TestPlatform6" unique_id=995574746]
+shape = SubResource("RectangleShape2D_test_platform")
+one_way_collision = true
+one_way_collision_margin = 10.0
+
+[node name="Visual" type="ColorRect" parent="TestPlatform6" unique_id=442716190]
+offset_left = -129.99998
+offset_top = -8.0
+offset_right = 1768.0989
+offset_bottom = 1072.0
+scale = Vector2(0.13697916, 0.014814815)
+color = Color(0, 0, 0, 1)
+
+[node name="TestPlatform7" type="StaticBody2D" parent="." unique_id=953476063 groups=["drop_through_platforms"]]
+position = Vector2(16549, -142)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="TestPlatform7" unique_id=2114358644]
+shape = SubResource("RectangleShape2D_test_platform")
+one_way_collision = true
+one_way_collision_margin = 10.0
+
+[node name="Visual" type="ColorRect" parent="TestPlatform7" unique_id=2034539409]
+offset_left = -129.99998
+offset_top = -8.0
+offset_right = 1768.0989
+offset_bottom = 1072.0
+scale = Vector2(0.13697916, 0.014814815)
+color = Color(0, 0, 0, 1)
+
+[node name="TestPlatform8" type="StaticBody2D" parent="." unique_id=372144850 groups=["drop_through_platforms"]]
+position = Vector2(16257, -358)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="TestPlatform8" unique_id=1290282191]
+shape = SubResource("RectangleShape2D_test_platform")
+one_way_collision = true
+one_way_collision_margin = 10.0
+
+[node name="Visual" type="ColorRect" parent="TestPlatform8" unique_id=1236168687]
+offset_left = -129.99998
+offset_top = -8.0
+offset_right = 1768.0989
+offset_bottom = 1072.0
+scale = Vector2(0.13697916, 0.014814815)
+color = Color(0, 0, 0, 1)
+
+[node name="TestPlatform9" type="StaticBody2D" parent="." unique_id=1134967293 groups=["drop_through_platforms"]]
+position = Vector2(16747, -480)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="TestPlatform9" unique_id=913372058]
+shape = SubResource("RectangleShape2D_test_platform")
+one_way_collision = true
+one_way_collision_margin = 10.0
+
+[node name="Visual" type="ColorRect" parent="TestPlatform9" unique_id=1854276988]
+offset_left = -129.99998
+offset_top = -8.0
+offset_right = 1768.0989
+offset_bottom = 1072.0
+scale = Vector2(0.13697916, 0.014814815)
+color = Color(0, 0, 0, 1)
+
+[node name="TestPlatform10" type="StaticBody2D" parent="." unique_id=1620208188 groups=["drop_through_platforms"]]
+position = Vector2(17206, -590)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="TestPlatform10" unique_id=1237089711]
+shape = SubResource("RectangleShape2D_test_platform")
+one_way_collision = true
+one_way_collision_margin = 10.0
+
+[node name="Visual" type="ColorRect" parent="TestPlatform10" unique_id=1192803893]
+offset_left = -129.99998
+offset_top = -8.0
+offset_right = 1768.0989
+offset_bottom = 1072.0
+scale = Vector2(0.13697916, 0.014814815)
+color = Color(0, 0, 0, 1)
+
+[node name="TestPlatform11" type="StaticBody2D" parent="." unique_id=156443609 groups=["drop_through_platforms"]]
+position = Vector2(16853, -685)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="TestPlatform11" unique_id=1360637938]
+shape = SubResource("RectangleShape2D_test_platform")
+one_way_collision = true
+one_way_collision_margin = 10.0
+
+[node name="Visual" type="ColorRect" parent="TestPlatform11" unique_id=316475429]
+offset_left = -129.99998
+offset_top = -8.0
+offset_right = 1768.0989
+offset_bottom = 1072.0
+scale = Vector2(0.13697916, 0.014814815)
+color = Color(0, 0, 0, 1)
+
+[node name="TestPlatform12" type="StaticBody2D" parent="." unique_id=2138985783 groups=["drop_through_platforms"]]
+position = Vector2(17210, -893)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="TestPlatform12" unique_id=1639554844]
+shape = SubResource("RectangleShape2D_test_platform")
+one_way_collision = true
+one_way_collision_margin = 10.0
+
+[node name="Visual" type="ColorRect" parent="TestPlatform12" unique_id=569114869]
+offset_left = -129.99998
+offset_top = -8.0
+offset_right = 1768.0989
+offset_bottom = 1072.0
+scale = Vector2(0.13697916, 0.014814815)
+color = Color(0, 0, 0, 1)
+
+[node name="TestPlatform13" type="StaticBody2D" parent="." unique_id=1585718745 groups=["drop_through_platforms"]]
+position = Vector2(16902, -1064)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="TestPlatform13" unique_id=1915725560]
+shape = SubResource("RectangleShape2D_test_platform")
+one_way_collision = true
+one_way_collision_margin = 10.0
+
+[node name="Visual" type="ColorRect" parent="TestPlatform13" unique_id=438827963]
+offset_left = -129.99998
+offset_top = -8.0
+offset_right = 1768.0989
+offset_bottom = 1072.0
+scale = Vector2(0.13697916, 0.014814815)
+color = Color(0, 0, 0, 1)
+
+[node name="TestPlatform14" type="StaticBody2D" parent="." unique_id=525548704 groups=["drop_through_platforms"]]
+position = Vector2(17204, -1255)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="TestPlatform14" unique_id=2061168626]
+shape = SubResource("RectangleShape2D_test_platform")
+one_way_collision = true
+one_way_collision_margin = 10.0
+
+[node name="Visual" type="ColorRect" parent="TestPlatform14" unique_id=1866256119]
+offset_left = -129.99998
+offset_top = -8.0
+offset_right = 1768.0989
+offset_bottom = 1072.0
+scale = Vector2(0.13697916, 0.014814815)
+color = Color(0, 0, 0, 1)
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=145273984]
 visible = false
@@ -1298,8 +1582,8 @@ script = ExtResource("5_eow3j")
 self_modulate = Color(0.57700837, 0.5770084, 0.57700837, 1)
 z_index = 1
 sprite_frames = SubResource("SpriteFrames_x5p1p")
-animation = &"character_die"
-frame = 7
+animation = &"character_power_up"
+frame = 9
 frame_progress = 1.0
 speed_scale = 2.0
 

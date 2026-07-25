@@ -316,7 +316,7 @@ func _on_realtime_message(message: Dictionary) -> void:
 	if message_type in ["player_stats", "player_stats_changed", "player_stats_response", "player_stats_updated", "get_player_stats", "get_player_stats_response", "stat_point_spent", "stats_changed", "player_progression_changed", "experience_gained", "xp_gained"]:
 		_handle_authoritative_stats_message(message_type, message)
 		return
-	if message_type in ["world_snapshot", "mob_snapshot", "mob_spawned", "mob_damaged", "mob_died", "player_damaged", "player_died", "player_revived", "player_respawned", "player_respawn", "player_xp_changed", "attack_rejected", "attack_ack"]:
+	if message_type in ["world_snapshot", "mob_snapshot", "mob_spawned", "mob_damaged", "mob_died", "player_damaged", "player_died", "player_revived", "player_respawned", "player_respawn", "player_xp_changed", "attack_rejected", "attack_ack", "player_power_up_activated", "player_power_up_rejected", "player_power_up_expired"]:
 		_handle_world_message(message_type, message)
 		return
 	var channel := str(message.get("channel", ""))
@@ -378,6 +378,10 @@ func _handle_world_message(message_type: String, message: Dictionary) -> void:
 				var knockback_data: Dictionary = knockback_value if knockback_value is Dictionary else {}
 				if $Player.has_method("apply_authoritative_damage"):
 					$Player.call("apply_authoritative_damage", int(data.get("damage", 0)), knockback_data, int(data.get("remaining_health", -1)))
+		"player_died":
+			if int(data.get("player_id", 0)) == int(Scope.session.current_user.id):
+				if $Player.has_method("apply_authoritative_death"):
+					$Player.call("apply_authoritative_death", data)
 		"player_revived", "player_respawned", "player_respawn":
 			if int(data.get("player_id", Scope.session.current_user.id)) == int(Scope.session.current_user.id):
 				pending_player_revive_data = data
@@ -402,6 +406,15 @@ func _handle_world_message(message_type: String, message: Dictionary) -> void:
 			if data.has("experience") or data.has("level") or data.has("stats"):
 				if $Player.has_method("apply_authoritative_stats"):
 					$Player.call("apply_authoritative_stats", data)
+		"player_power_up_activated":
+			if int(data.get("player_id", Scope.session.current_user.id)) == int(Scope.session.current_user.id):
+				$Player.call("apply_authoritative_power_up", data)
+		"player_power_up_rejected":
+			if int(data.get("player_id", Scope.session.current_user.id)) == int(Scope.session.current_user.id):
+				$Player.call("apply_authoritative_power_up_rejected", data)
+		"player_power_up_expired":
+			if int(data.get("player_id", Scope.session.current_user.id)) == int(Scope.session.current_user.id):
+				$Player.call("apply_authoritative_power_up_expired", data)
 
 func _accept_world_sequence(data: Dictionary) -> bool:
 	var sequence := int(data.get("sequence", 0))
@@ -546,7 +559,16 @@ func _clear_authoritative_mobs() -> void:
 		_remove_authoritative_mob(str(mob_id_value))
 	authoritative_mobs.clear()
 
-func request_mob_attack(mob_id: String, player_position: Vector2, facing: int) -> void:
+func request_player_power_up(activation_id: String, player_position: Vector2) -> void:
+	if activation_id.is_empty() or not Scope.realtime.is_open() or world_map_id.is_empty():
+		return
+	Scope.realtime.send_command("activate_power_up", {
+		"activation_id": activation_id,
+		"client_position": {"x": player_position.x, "y": player_position.y}
+	})
+
+
+func request_mob_attack(mob_id: String, player_position: Vector2, facing: int, power_up_id: String = "", attack_swing_id: String = "") -> void:
 	if not Scope.realtime.is_open() or world_map_id.is_empty():
 		return
 	world_attack_sequence += 1
@@ -556,6 +578,8 @@ func request_mob_attack(mob_id: String, player_position: Vector2, facing: int) -
 		"mob_id": mob_id,
 		"attack_id": attack_id,
 		"attack_type": "basic",
+		"power_up_id": power_up_id,
+		"attack_swing_id": attack_swing_id,
 		"client_position": {"x": player_position.x, "y": player_position.y},
 		"client_facing": 1 if facing >= 0 else -1
 	})
@@ -662,8 +686,6 @@ func _create_remote_player(user_id: int) -> Node2D:
 	remote_players[user_id] = remote_entity
 	_load_remote_player_name(user_id, remote_entity)
 	return remote_entity
-
-
 func _load_remote_player_name(user_id: int, remote_entity: Node2D) -> void:
 	var result := await Scope.wizards_wager.player_profile(user_id)
 	if not result.success or not is_instance_valid(remote_entity):
@@ -757,12 +779,14 @@ func _sprite_frames_from_bytes(bytes: PackedByteArray) -> SpriteFrames:
 	_add_sprite_animation(frames, "character_idle", texture, 36, 6, 5.0)
 	_add_sprite_animation(frames, "character_walk", texture, 0, 6, 5.0)
 	_add_sprite_animation(frames, "character_attack", texture, 108, 8, 5.0)
+	_add_sprite_animation(frames, "character_die", texture, 216, 8, 5.0)
+	_add_sprite_animation(frames, "character_power_up", texture, 252, 10, 5.0)
 	return frames
 
 
 func _add_sprite_animation(frames: SpriteFrames, animation_name: String, texture: Texture2D, row_y: int, frame_count: int, speed: float) -> void:
 	frames.add_animation(animation_name)
-	frames.set_animation_loop(animation_name, animation_name != "character_attack")
+	frames.set_animation_loop(animation_name, animation_name not in ["character_attack", "character_die", "character_power_up"])
 	frames.set_animation_speed(animation_name, speed)
 	for index in frame_count:
 		var atlas := AtlasTexture.new()

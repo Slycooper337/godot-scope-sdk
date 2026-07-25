@@ -25,6 +25,8 @@ signal game_over_finished
 @export var jump_stamina_cost := 10.0
 @export var attack_stamina_cost := 20.0
 @export var mana_regen_rate := 8.0
+@export var power_up_mana_cost := 20.0
+@export var power_up_duration := 10.0
 
 @onready var visual: AnimatedSprite2D = $Visual
 @onready var player_animations: AnimationPlayer = $Visual/PlayerAnimations
@@ -61,6 +63,12 @@ var level := 1
 var experience := 0
 var unspent_stat_points := 0
 var dead := false
+var powering_up := false
+var powered_up_remaining := 0.0
+var power_up_sequence := 0
+var active_power_up_id := ""
+var attack_swing_sequence := 0
+var current_attack_swing_id := ""
 
 func _ready() -> void:
 	_recalculate_derived_stats()
@@ -80,13 +88,20 @@ func _physics_process(delta: float) -> void:
 	var stunned := hit_stun_timer > 0.0
 	if stunned:
 		hit_stun_timer -= delta
+	if powered_up_remaining > 0.0:
+		powered_up_remaining = maxf(powered_up_remaining - delta, 0.0)
+		if powered_up_remaining <= 0.0:
+			active_power_up_id = ""
 
 	if drop_through_timer > 0.0:
 		drop_through_timer -= delta
 		if drop_through_timer <= 0.0:
 			body_collision.set_deferred("disabled", false)
 
-	if not stunned and Input.is_action_just_pressed("ui_select") and not attacking and current_stamina >= attack_stamina_cost:
+	if not stunned and not attacking and not powering_up and not is_powered_up() and Input.is_action_just_pressed("power_up") and current_mana >= power_up_mana_cost:
+		_start_power_up()
+
+	if not stunned and not powering_up and Input.is_action_just_pressed("ui_select") and not attacking and current_stamina >= attack_stamina_cost:
 		_start_attack()
 
 	if attacking:
@@ -98,7 +113,7 @@ func _physics_process(delta: float) -> void:
 		body_collision.set_deferred("disabled", true)
 
 	var direction := Input.get_axis("ui_left", "ui_right")
-	var sprinting := not stunned and not attacking and Input.is_action_pressed("sprint") and direction != 0.0 and is_on_floor() and current_stamina > 0.0
+	var sprinting := not stunned and not attacking and not powering_up and Input.is_action_pressed("sprint") and direction != 0.0 and is_on_floor() and current_stamina > 0.0
 	var target_speed := _movement_speed(sprinting)
 	_update_resources(delta, sprinting)
 	if sprinting and current_stamina <= 0.0:
@@ -108,7 +123,7 @@ func _physics_process(delta: float) -> void:
 	if stunned:
 		# Preserve the hit impulse through the stun window so the knockback is visible.
 		pass
-	elif attacking and is_on_floor():
+	elif (attacking or powering_up) and is_on_floor():
 		velocity.x = 0.0
 	elif direction != 0.0:
 		velocity.x = move_toward(velocity.x, direction * target_speed, acceleration * delta)
@@ -122,7 +137,7 @@ func _physics_process(delta: float) -> void:
 	elif velocity.y > 0.0:
 		velocity.y = 0.0
 
-	if not stunned and not attacking and Input.is_action_just_pressed("ui_up") and is_on_floor() and current_stamina >= jump_stamina_cost:
+	if not stunned and not attacking and not powering_up and Input.is_action_just_pressed("ui_up") and is_on_floor() and current_stamina >= jump_stamina_cost:
 		current_stamina -= jump_stamina_cost
 		velocity.y = _jump_velocity()
 	elif Input.is_action_just_released("ui_up") and velocity.y < 0.0:
@@ -139,7 +154,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _update_animation(direction: float, sprinting: bool) -> void:
-	if attacking:
+	if attacking or powering_up:
 		return
 
 	if not is_on_floor():
@@ -163,16 +178,14 @@ func _on_animation_finished() -> void:
 	elif visual.animation == "character_attack":
 		attacking = false
 		attack_hitbox.set_deferred("monitoring", false)
-
-		# Resume the correct animation based on current input
-		var direction := Input.get_axis("ui_left", "ui_right")
-
-		if direction != 0:
-			visual.play("character_walk")
-			visual.speed_scale = 2
-		else:
-			visual.play("character_idle")
-			visual.speed_scale = 1
+		_resume_movement_animation()
+	elif visual.animation == "character_power_up":
+		powering_up = false
+		powered_up_remaining = power_up_duration
+		var game := get_tree().current_scene
+		if game != null and game.has_method("request_player_power_up"):
+			game.call("request_player_power_up", active_power_up_id, global_position)
+		_resume_movement_animation()
 
 
 func hit(attacker: Node2D = null) -> void:
@@ -180,7 +193,7 @@ func hit(attacker: Node2D = null) -> void:
 
 
 func take_damage(amount: int, attacker: Node2D = null) -> void:
-	if current_health <= 0.0:
+	if dead:
 		return
 
 	current_health = maxf(current_health - float(amount), 0.0)
@@ -191,7 +204,7 @@ func take_damage(amount: int, attacker: Node2D = null) -> void:
 	_apply_hit_knockback(attacker)
 
 func apply_authoritative_damage(amount: int, knockback: Dictionary = {}, authoritative_remaining_health: int = -1) -> void:
-	if current_health <= 0.0:
+	if dead:
 		return
 
 	if authoritative_remaining_health >= 0:
@@ -200,7 +213,7 @@ func apply_authoritative_damage(amount: int, knockback: Dictionary = {}, authori
 		current_health = maxf(current_health - float(amount), 0.0)
 	_show_damage_number(amount)
 	if current_health <= 0.0:
-		_begin_death()
+		apply_authoritative_death()
 		return
 	if attacking:
 		attacking = false
@@ -212,16 +225,37 @@ func apply_authoritative_damage(amount: int, knockback: Dictionary = {}, authori
 	player_animations.play("player_hit")
 
 
+func apply_authoritative_death(_data: Dictionary = {}) -> void:
+	if dead:
+		return
+	current_health = 0.0
+	_begin_death()
+
+
 func _begin_death() -> void:
 	if dead:
 		return
 	dead = true
 	attacking = false
+	powering_up = false
+	powered_up_remaining = 0.0
+	active_power_up_id = ""
 	attack_hitbox.set_deferred("monitoring", false)
 	body_collision.set_deferred("disabled", true)
 	velocity = Vector2.ZERO
 	visual.speed_scale = 1.0
-	visual.play("character_die")
+	player_animations.stop()
+	dead_animation_player.stop()
+	visual.stop()
+	if visual.sprite_frames == null or not visual.sprite_frames.has_animation(&"character_die"):
+		push_error("[Player] Visual is missing the character_die SpriteFrames animation.")
+		# Do not strand the player in the dead state if a malformed custom
+		# SpriteFrames resource reaches this point.
+		dead_animation_player.play(&"game_over")
+		return
+	visual.visible = true
+	visual.play(&"character_die")
+	visual.set_frame_and_progress(0, 0.0)
 
 
 func _on_dead_animation_finished(animation_name: StringName) -> void:
@@ -235,6 +269,9 @@ func revive(server_data: Dictionary = {}) -> void:
 	velocity = Vector2.ZERO
 	hit_stun_timer = 0.0
 	attacking = false
+	powering_up = false
+	powered_up_remaining = 0.0
+	active_power_up_id = ""
 	attack_hitbox.set_deferred("monitoring", false)
 	dead_animation_player.play("RESET")
 	var resources_value: Variant = server_data.get("resources", server_data)
@@ -283,10 +320,73 @@ func _start_attack() -> void:
 	current_stamina -= attack_stamina_cost
 	attack_direction = facing_direction
 	attack_hit_targets.clear()
+	attack_swing_sequence += 1
+	current_attack_swing_id = "%s-swing-%d" % [active_power_up_id if is_powered_up() else "basic", attack_swing_sequence]
 	attack_hitbox.position.x = absf(attack_hitbox.position.x) * attack_direction
 	attack_hitbox.set_deferred("monitoring", true)
 	visual.play("character_attack")
 	visual.speed_scale = _attack_animation_speed()
+
+
+func _start_power_up() -> void:
+	current_mana -= power_up_mana_cost
+	powering_up = true
+	power_up_sequence += 1
+	active_power_up_id = "%d-%d-%d" % [get_instance_id(), Time.get_ticks_usec(), power_up_sequence]
+	velocity.x = 0.0
+	if visual.sprite_frames != null and visual.sprite_frames.has_animation(&"character_power_up"):
+		visual.play(&"character_power_up")
+		visual.set_frame_and_progress(0, 0.0)
+		return
+	push_error("[Player] Visual is missing the character_power_up SpriteFrames animation.")
+	powering_up = false
+	powered_up_remaining = power_up_duration
+	var game := get_tree().current_scene
+	if game != null and game.has_method("request_player_power_up"):
+		game.call("request_player_power_up", active_power_up_id, global_position)
+
+
+func is_powered_up() -> bool:
+	return powered_up_remaining > 0.0 and not active_power_up_id.is_empty()
+
+
+func apply_authoritative_power_up(data: Dictionary) -> void:
+	if str(data.get("activation_id", active_power_up_id)) != active_power_up_id:
+		return
+	if data.has("remaining_mana"):
+		current_mana = clampf(float(data.get("remaining_mana", current_mana)), 0.0, max_mana)
+	if data.has("remaining_seconds"):
+		powered_up_remaining = clampf(float(data.get("remaining_seconds", powered_up_remaining)), 0.0, power_up_duration)
+
+
+func apply_authoritative_power_up_rejected(data: Dictionary) -> void:
+	if str(data.get("activation_id", active_power_up_id)) != active_power_up_id:
+		return
+	powering_up = false
+	powered_up_remaining = 0.0
+	active_power_up_id = ""
+	if data.has("remaining_mana"):
+		current_mana = clampf(float(data.get("remaining_mana", current_mana)), 0.0, max_mana)
+	else:
+		current_mana = minf(current_mana + power_up_mana_cost, max_mana)
+
+
+func apply_authoritative_power_up_expired(data: Dictionary) -> void:
+	if str(data.get("activation_id", active_power_up_id)) != active_power_up_id:
+		return
+	powering_up = false
+	powered_up_remaining = 0.0
+	active_power_up_id = ""
+
+
+func _resume_movement_animation() -> void:
+	var direction := Input.get_axis("ui_left", "ui_right")
+	if direction != 0.0:
+		visual.play("character_walk")
+		visual.speed_scale = 2.0
+	else:
+		visual.play("character_idle")
+		visual.speed_scale = 1.0
 
 
 func _on_attack_hitbox_area_entered(area: Area2D) -> void:
@@ -296,18 +396,18 @@ func _on_attack_hitbox_area_entered(area: Area2D) -> void:
 func _try_register_attack_area(area: Area2D) -> void:
 	if not attacking or attack_hit_targets.has(area):
 		return
-
+	if area.name != "EnemyArea":
+		return
+	var enemy: Node = area.get_parent()
+	if not enemy.has_method("get_server_mob_id"):
+		return
+	var mob_id := str(enemy.call("get_server_mob_id"))
+	if mob_id.is_empty() or (not is_powered_up() and not attack_hit_targets.is_empty()):
+		return
 	attack_hit_targets[area] = true
-	if area.name == "EnemyArea":
-		var enemy: Node = area.get_parent()
-		if not enemy.has_method("get_server_mob_id"):
-			return
-		var mob_id := str(enemy.call("get_server_mob_id"))
-		if mob_id.is_empty():
-			return
-		var game := get_tree().current_scene
-		if game != null and game.has_method("request_mob_attack"):
-			game.call("request_mob_attack", mob_id, global_position, int(facing_direction))
+	var game := get_tree().current_scene
+	if game != null and game.has_method("request_mob_attack"):
+		game.call("request_mob_attack", mob_id, global_position, int(facing_direction), active_power_up_id if is_powered_up() else "", current_attack_swing_id)
 
 
 func _recalculate_derived_stats() -> void:
