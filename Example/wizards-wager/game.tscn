@@ -387,7 +387,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_5628o")
 }],
-"loop": true,
+"loop": false,
 "name": &"die",
 "speed": 5.0
 }, {
@@ -937,6 +937,13 @@ position = Vector2(0, 543)
 position = Vector2(7310, 135.5)
 shape = SubResource("RectangleShape2D_hve3p")
 
+[node name="ColorRect2" type="ColorRect" parent="Ground" unique_id=1453881275]
+offset_left = -2508.0
+offset_top = -40.0
+offset_right = 17350.0
+offset_bottom = 302.0
+color = Color(0.20152658, 0.20152658, 0.20152658, 1)
+
 [node name="ColorRect" type="ColorRect" parent="Ground" unique_id=1077630869]
 offset_left = -2508.0
 offset_top = -27.0
@@ -1166,19 +1173,20 @@ scale = Vector2(5, 5)
 script = ExtResource("14_215e1")
 move_speed = 120.0
 acceleration = 900.0
-aggro_range = 360.0
 chase_speed = 240.0
 chase_acceleration = 1400.0
 attack_range = 100.0
 attack_cooldown = 0.45
 attack_duration = 0.4
+can_jump = false
+aggro_range = 360.0
 max_health = 50
 experience_reward = 50
-can_jump = false
 
 [node name="Visual" type="AnimatedSprite2D" parent="Enemies/Goblin" unique_id=1922363702]
+position = Vector2(0, 1.5999877)
 sprite_frames = SubResource("SpriteFrames_wj41c")
-animation = &"jump"
+animation = &"idle"
 speed_scale = 2.0
 
 [node name="BodyCollision" type="CollisionShape2D" parent="Enemies/Goblin" unique_id=572165199]
