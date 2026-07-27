@@ -172,14 +172,7 @@ func apply_server_death(_data: Dictionary = {}) -> void:
 
 func _begin_death_animation() -> void:
 	velocity = Vector2.ZERO
-	if visual.sprite_frames == null or not visual.sprite_frames.has_animation(&"npc_die"):
-		queue_free()
-		return
-	# A dead-state snapshot can start this animation before the dedicated death
-	# event arrives. Restart it so animation_finished always owns final cleanup.
-	visual.stop()
-	visual.frame = 0
-	visual.play(&"npc_die")
+	_play_if_available(&"npc_die")
 
 
 func _knockback_from_data(data: Dictionary) -> Vector2:
@@ -239,8 +232,6 @@ func _play_if_available(animation_name: StringName) -> void:
 
 func _on_visual_animation_finished() -> void:
 	if dying:
-		if visual.animation == &"npc_die":
-			queue_free()
 		return
 	if visual.animation == &"npc_hit":
 		_play_if_available(&"npc_idle")

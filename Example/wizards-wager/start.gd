@@ -25,12 +25,12 @@ func _initialize_scope() -> void:
 		show_login()
 
 
-func load_game():
-	get_tree().change_scene_to_file("res://game.tscn")
-	pass
+func load_game() -> void:
+	get_tree().call_deferred("change_scene_to_file", "res://game.tscn")
 	
-func show_login():
-	get_tree().change_scene_to_file("res://login.tscn")
+
+func show_login() -> void:
+	get_tree().call_deferred("change_scene_to_file", "res://login.tscn")
 
 
 func _quit() -> void:

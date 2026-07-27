@@ -71,6 +71,7 @@ var faction_state: Dictionary = {}
 var faction_choice_container: VBoxContainer
 var faction_choice_title: Label
 var faction_choice_rows: Dictionary = {}
+var logging_out := false
 
 
 func _ready() -> void:
@@ -410,6 +411,8 @@ func _close_window(panel: Control) -> void:
 
 
 func _process(delta: float) -> void:
+	if logging_out:
+		return
 	_validate_current_target()
 	refresh_elapsed += delta
 	_update_player_status()
@@ -611,9 +614,10 @@ func _attempt_realtime_reconnect() -> void:
 
 
 func _on_session_logged_out() -> void:
-	if get_tree().current_scene != self:
+	var tree := get_tree()
+	if tree == null or tree.current_scene != self:
 		return
-	get_tree().change_scene_to_file("res://login.tscn")
+	tree.change_scene_to_file("res://login.tscn")
 
 
 func _setup_chat() -> void:
@@ -745,6 +749,8 @@ func _show_chat_bubble(sender_id: int, sender_username: String, text: String, li
 
 
 func _on_realtime_message(message: Dictionary) -> void:
+	if logging_out:
+		return
 	var message_type := str(message.get("type", ""))
 	if message_type == "chat_message":
 		_handle_chat_message(message)
@@ -1695,10 +1701,15 @@ func _on_target_cleared() -> void:
 
 
 func _on_logout_pressed() -> void:
-	await _save_player_state()
+	if logging_out:
+		return
+	logging_out = true
+	# Stop realtime callbacks and per-frame refresh work before waiting for the
+	# final save, so no game requests can be queued behind the logout handoff.
 	Scope.realtime.close()
+	await _save_player_state()
+	# Logging out emits session_logged_out, which owns the scene transition.
 	Scope.auth.logout()
-	get_tree().change_scene_to_file("res://login.tscn")
 
 
 func _get_bet_end_unix(bet: ScopeWizardsWagerBet) -> int:

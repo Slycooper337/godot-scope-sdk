@@ -4,11 +4,13 @@ extends Node2D
 var email: String = ""
 var password: String = ""
 var submitting := false
+@onready var login_button: Button = $VBoxContainer/HBoxContainer/LogIn
+@onready var create_account_button: Button = $VBoxContainer/HBoxContainer/CreateAccount
 
 func show_error(message: String) -> void:
 	$VBoxContainer/Status.text = message
-	$VBoxContainer/LogIn.disabled = false
-	$VBoxContainer/CreateAccount.disabled = false
+	login_button.disabled = false
+	create_account_button.disabled = false
 	submitting = false
 
 
@@ -22,8 +24,8 @@ func login() -> void:
 		return
 	submitting = true
 	$VBoxContainer/Status.text = "Signing in..."
-	$VBoxContainer/LogIn.disabled = true
-	$VBoxContainer/CreateAccount.disabled = true
+	login_button.disabled = true
+	create_account_button.disabled = true
 	var result := await Scope.auth.login(email, password)
 	if not result.success:
 		show_error(result.error)
