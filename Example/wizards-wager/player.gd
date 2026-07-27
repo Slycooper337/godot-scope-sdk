@@ -101,18 +101,25 @@ func _physics_process(delta: float) -> void:
 	if not stunned and not attacking and not powering_up and not is_powered_up() and Input.is_action_just_pressed("power_up") and current_mana >= power_up_mana_cost:
 		_start_power_up()
 
-	if not stunned and not powering_up and Input.is_action_just_pressed("ui_select") and not attacking and current_stamina >= attack_stamina_cost:
+	if not stunned and not powering_up and Input.is_action_just_pressed("attack") and not attacking and current_stamina >= attack_stamina_cost:
 		_start_attack()
 
 	if attacking:
-		for overlapping_area: Area2D in attack_hitbox.get_overlapping_areas():
-			_try_register_attack_area(overlapping_area)
+		var overlapping_areas: Array[Area2D] = []
+		for overlapping_value: Area2D in attack_hitbox.get_overlapping_areas():
+			overlapping_areas.append(overlapping_value)
+		var preferred_area: Area2D = _preferred_attack_area(overlapping_areas)
+		if preferred_area != null:
+			_try_register_attack_area(preferred_area)
+		else:
+			for overlapping_area: Area2D in overlapping_areas:
+				_try_register_attack_area(overlapping_area)
 
-	if Input.is_action_just_pressed("ui_down") and _is_standing_on_drop_through_platform():
+	if _down_just_pressed() and _is_standing_on_drop_through_platform():
 		drop_through_timer = 0.35
 		body_collision.set_deferred("disabled", true)
 
-	var direction := Input.get_axis("ui_left", "ui_right")
+	var direction := _horizontal_input()
 	var sprinting := not stunned and not attacking and not powering_up and Input.is_action_pressed("sprint") and direction != 0.0 and is_on_floor() and current_stamina > 0.0
 	var target_speed := _movement_speed(sprinting)
 	_update_resources(delta, sprinting)
@@ -137,10 +144,10 @@ func _physics_process(delta: float) -> void:
 	elif velocity.y > 0.0:
 		velocity.y = 0.0
 
-	if not stunned and not attacking and not powering_up and Input.is_action_just_pressed("ui_up") and is_on_floor() and current_stamina >= jump_stamina_cost:
+	if not stunned and not attacking and not powering_up and _up_just_pressed() and is_on_floor() and current_stamina >= jump_stamina_cost:
 		current_stamina -= jump_stamina_cost
 		velocity.y = _jump_velocity()
-	elif Input.is_action_just_released("ui_up") and velocity.y < 0.0:
+	elif _up_just_released() and velocity.y < 0.0:
 		velocity.y *= jump_cut_multiplier
 
 	move_and_slide()
@@ -380,7 +387,7 @@ func apply_authoritative_power_up_expired(data: Dictionary) -> void:
 
 
 func _resume_movement_animation() -> void:
-	var direction := Input.get_axis("ui_left", "ui_right")
+	var direction := _horizontal_input()
 	if direction != 0.0:
 		visual.play("character_walk")
 		visual.speed_scale = 2.0
@@ -408,6 +415,21 @@ func _try_register_attack_area(area: Area2D) -> void:
 	var game := get_tree().current_scene
 	if game != null and game.has_method("request_mob_attack"):
 		game.call("request_mob_attack", mob_id, global_position, int(facing_direction), active_power_up_id if is_powered_up() else "", current_attack_swing_id)
+
+
+func _preferred_attack_area(areas: Array[Area2D]) -> Area2D:
+	if is_powered_up():
+		return null
+	var game := get_tree().current_scene
+	if game == null or not game.has_method("is_targeted_entity"):
+		return null
+	for area: Area2D in areas:
+		if area.name != "EnemyArea":
+			continue
+		var enemy := area.get_parent()
+		if game.call("is_targeted_entity", enemy):
+			return area
+	return null
 
 
 func _recalculate_derived_stats() -> void:
@@ -618,3 +640,21 @@ func _is_standing_on_drop_through_platform() -> bool:
 			return true
 
 	return false
+
+
+func _horizontal_input() -> float:
+	var keyboard_direction := Input.get_axis("ui_left", "ui_right")
+	var controller_direction := Input.get_axis("controller_left", "controller_right")
+	return controller_direction if absf(controller_direction) > absf(keyboard_direction) else keyboard_direction
+
+
+func _up_just_pressed() -> bool:
+	return Input.is_action_just_pressed("ui_up") or Input.is_action_just_pressed("controller_jump")
+
+
+func _up_just_released() -> bool:
+	return Input.is_action_just_released("ui_up") or Input.is_action_just_released("controller_jump")
+
+
+func _down_just_pressed() -> bool:
+	return Input.is_action_just_pressed("ui_down") or Input.is_action_just_pressed("controller_down")

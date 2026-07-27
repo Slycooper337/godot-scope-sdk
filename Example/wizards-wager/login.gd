@@ -3,13 +3,27 @@ extends Node2D
 
 var email: String = ""
 var password: String = ""
+var submitting := false
 
 func show_error(message: String) -> void:
-	print(message)
 	$VBoxContainer/Status.text = message
+	$VBoxContainer/LogIn.disabled = false
+	$VBoxContainer/CreateAccount.disabled = false
+	submitting = false
 
 
 func login() -> void:
+	if submitting:
+		return
+	email = String($VBoxContainer/Email.text).strip_edges()
+	password = String($VBoxContainer/Password.text)
+	if email.is_empty() or password.is_empty():
+		show_error("Enter your email and password.")
+		return
+	submitting = true
+	$VBoxContainer/Status.text = "Signing in..."
+	$VBoxContainer/LogIn.disabled = true
+	$VBoxContainer/CreateAccount.disabled = true
 	var result := await Scope.auth.login(email, password)
 	if not result.success:
 		show_error(result.error)
@@ -20,8 +34,10 @@ func login() -> void:
 	
 
 func _on_log_in_pressed() -> void:
-	email = get_node("VBoxContainer/Email").text
-	password = get_node("VBoxContainer/Password").text
+	login()
+
+
+func _on_auth_submitted(_text: String) -> void:
 	login()
 
 

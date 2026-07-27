@@ -50,6 +50,7 @@ var last_damage_health := -1
 var snapshot_buffer: Array[Dictionary] = []
 var server_velocity := Vector2.ZERO
 var last_damage_attack_id := ""
+var death_tween: Tween = null
 
 
 func _ready() -> void:
@@ -248,8 +249,31 @@ func apply_server_death(_data: Dictionary = {}) -> void:
 	bite_hitbox.set_deferred("monitoring", false)
 	body_collision.set_deferred("disabled", true)
 	enemy_collision.set_deferred("disabled", true)
+	var death_velocity := _knockback_from_data(_data)
+	velocity = death_velocity
+	server_velocity = death_velocity
+	if death_tween != null:
+		death_tween.kill()
+	if death_velocity.length() > 1.0:
+		death_tween = create_tween()
+		death_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		death_tween.tween_property(self, "global_position", global_position + Vector2(death_velocity.x * 0.12, death_velocity.y * 0.08), 0.14)
+		death_tween.tween_callback(_begin_death_animation)
+	else:
+		_begin_death_animation()
+
+
+func _begin_death_animation() -> void:
 	velocity = Vector2.ZERO
 	visual.play("die")
+
+
+func _knockback_from_data(data: Dictionary) -> Vector2:
+	var value: Variant = data.get("knockback", data.get("velocity", {}))
+	if value is Dictionary:
+		var knockback: Dictionary = value
+		return Vector2(float(knockback.get("x", 0.0)), float(knockback.get("y", 0.0)))
+	return Vector2.ZERO
 
 func _update_server_animation(state: String) -> void:
 	if dying:

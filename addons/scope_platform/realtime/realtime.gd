@@ -58,6 +58,14 @@ func publish(channel: String, data: Dictionary) -> ScopeResponse:
 	_socket.send_text(JSON.stringify({"type": "publish", "channel": channel, "data": data}))
 	return ScopeResponse.ok(200)
 
+func send_command(command_type: String, data: Dictionary = {}) -> ScopeResponse:
+	if command_type.strip_edges().is_empty():
+		return ScopeResponse.fail(400, "Realtime command type is required")
+	if _socket == null or _socket.get_ready_state() != WebSocketPeer.STATE_OPEN:
+		return ScopeResponse.fail(0, "Realtime is not connected")
+	_socket.send_text(JSON.stringify({"type": command_type, "data": data}))
+	return ScopeResponse.ok(200)
+
 func close() -> void:
 	if _socket != null:
 		_socket.close()

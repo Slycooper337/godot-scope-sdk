@@ -2,16 +2,21 @@ class_name ScopeRealtime
 extends RefCounted
 
 signal message_received(message: Dictionary)
+signal authentication_failed(message: String)
 
 var _api: ScopeAPI
 var _socket: WebSocketPeer
 var connected: bool = false
+var _auth_failure_emitted := false
 
 func _init(api: ScopeAPI) -> void:
 	_api = api
 
 func connect_with_session(session: ScopeSession) -> ScopeResponse:
+	if _socket != null:
+		_socket.close()
 	_socket = WebSocketPeer.new()
+	_auth_failure_emitted = false
 	_socket.handshake_headers = PackedStringArray([
 		"X-Scope-Application-ID: " + ScopeConfig.application_id(),
 		"X-Scope-Public-Key: " + ScopeConfig.public_key(),
@@ -27,7 +32,12 @@ func poll() -> void:
 	if _socket == null: return
 	_socket.poll()
 	connected = _socket.get_ready_state() == WebSocketPeer.STATE_OPEN
-	if not connected: return
+	if not connected:
+		var close_code := _socket.get_close_code()
+		if (close_code == 1008 or close_code == 4001 or close_code == 4401) and not _auth_failure_emitted:
+			_auth_failure_emitted = true
+			authentication_failed.emit("Realtime session expired.")
+		return
 	while _socket.get_available_packet_count() > 0:
 		var raw_message := _socket.get_packet().get_string_from_utf8()
 		var message: Variant = JSON.parse_string(raw_message)

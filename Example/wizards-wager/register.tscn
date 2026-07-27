@@ -23,25 +23,29 @@ theme_override_font_sizes/font_size = 45
 text = "REGISTER"
 horizontal_alignment = 1
 
-[node name="Username" type="TextEdit" parent="VBoxContainer" unique_id=2070533151]
+[node name="Username" type="LineEdit" parent="VBoxContainer" unique_id=2070533151]
 custom_minimum_size = Vector2(300, 50)
 layout_mode = 2
 placeholder_text = "username"
 
-[node name="Email" type="TextEdit" parent="VBoxContainer" unique_id=1937847649]
+[node name="Email" type="LineEdit" parent="VBoxContainer" unique_id=1937847649]
 custom_minimum_size = Vector2(300, 50)
 layout_mode = 2
 placeholder_text = "email@email.com"
 
-[node name="Password" type="TextEdit" parent="VBoxContainer" unique_id=1766077186]
+[node name="Password" type="LineEdit" parent="VBoxContainer" unique_id=1766077186]
 custom_minimum_size = Vector2(300, 50)
 layout_mode = 2
 placeholder_text = "password"
+secret = true
+expand_to_text = true
 
-[node name="PasswordConfirm" type="TextEdit" parent="VBoxContainer" unique_id=1770611075]
+[node name="PasswordConfirm" type="LineEdit" parent="VBoxContainer" unique_id=1770611075]
 custom_minimum_size = Vector2(300, 50)
 layout_mode = 2
 placeholder_text = "confirm password"
+secret = true
+expand_to_text = true
 
 [node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer" unique_id=494059907]
 layout_mode = 2
@@ -70,3 +74,7 @@ text = "Availability"
 
 [connection signal="pressed" from="VBoxContainer/HBoxContainer/CreateAccount" to="." method="_on_create_account_pressed"]
 [connection signal="pressed" from="VBoxContainer/HBoxContainer/Back" to="." method="_on_back_pressed"]
+[connection signal="text_submitted" from="VBoxContainer/Username" to="." method="_on_registration_submitted"]
+[connection signal="text_submitted" from="VBoxContainer/Email" to="." method="_on_registration_submitted"]
+[connection signal="text_submitted" from="VBoxContainer/Password" to="." method="_on_registration_submitted"]
+[connection signal="text_submitted" from="VBoxContainer/PasswordConfirm" to="." method="_on_registration_submitted"]

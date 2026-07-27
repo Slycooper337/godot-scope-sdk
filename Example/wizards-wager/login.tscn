@@ -23,15 +23,17 @@ theme_override_font_sizes/font_size = 45
 text = "LOGIN"
 horizontal_alignment = 1
 
-[node name="Email" type="TextEdit" parent="VBoxContainer" unique_id=510683339]
+[node name="Email" type="LineEdit" parent="VBoxContainer" unique_id=510683339]
 custom_minimum_size = Vector2(300, 50)
 layout_mode = 2
 placeholder_text = "email@email.com"
 
-[node name="Password" type="TextEdit" parent="VBoxContainer" unique_id=1027357268]
+[node name="Password" type="LineEdit" parent="VBoxContainer" unique_id=1027357268]
 custom_minimum_size = Vector2(300, 50)
 layout_mode = 2
 placeholder_text = "password"
+secret = true
+expand_to_text = true
 
 [node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer" unique_id=835295026]
 layout_mode = 2
@@ -55,3 +57,5 @@ horizontal_alignment = 1
 
 [connection signal="pressed" from="VBoxContainer/HBoxContainer/LogIn" to="." method="_on_log_in_pressed"]
 [connection signal="pressed" from="VBoxContainer/HBoxContainer/CreateAccount" to="." method="_on_create_account_pressed"]
+[connection signal="text_submitted" from="VBoxContainer/Email" to="." method="_on_auth_submitted"]
+[connection signal="text_submitted" from="VBoxContainer/Password" to="." method="_on_auth_submitted"]

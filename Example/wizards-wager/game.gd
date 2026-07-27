@@ -8,6 +8,10 @@ const PLAYER_STATE_KEY := "player_state"
 const MOVEMENT_CHANNEL := "match/movement-test"
 const MOVEMENT_UPDATE_INTERVAL := 0.1
 const WORLD_MAP_ID := "forest"
+const RESOURCE_BAR_GROWTH_PER_STAT_POINT := 10.0
+const REMOTE_PLAYER_SCRIPT := preload("res://remote_player.gd")
+const CHAT_BUBBLE_SCRIPT := preload("res://chat_bubble.gd")
+const TARGET_INDICATOR_SCRIPT := preload("res://target_indicator.gd")
 
 var active_bet: ScopeWizardsWagerBet = null
 var refresh_elapsed := 0.0
@@ -22,8 +26,18 @@ var last_sent_position: Vector2 = Vector2.ZERO
 var has_sent_position: bool = false
 var remote_players: Dictionary = {}
 var realtime_was_connected: bool = false
+var realtime_reconnect_elapsed := 0.0
+var realtime_reconnect_attempting := false
+var realtime_reconnect_delay := 3.0
 var movement_packets_sent: int = 0
 var movement_packets_received: int = 0
+var movement_sequence := 0
+var last_sent_velocity := Vector2.ZERO
+var last_sent_rotation := 0.0
+var last_sent_facing := 0
+var last_sent_grounded := false
+var last_sent_movement_state := ""
+var last_sent_map_id := ""
 var sprite_file_id: int = 0
 var remote_sprite_file_ids: Dictionary = {}
 var remote_sprite_loading: Dictionary = {}
@@ -46,9 +60,23 @@ var server_enemy_templates: Dictionary = {}
 var player_game_over_finished := false
 var player_revive_received := false
 var pending_player_revive_data: Dictionary = {}
+var resource_bar_min_widths: Dictionary = {}
+var chat_dock: LocalChatDock
+var chat_message_sequence := 0
+var delivered_chat_message_ids: Dictionary = {}
+var chat_history_scope_id := ""
+var target_mode_enabled := false
+var current_target: Node = null
+var faction_state: Dictionary = {}
+var faction_choice_container: VBoxContainer
+var faction_choice_title: Label
+var faction_choice_rows: Dictionary = {}
 
 
 func _ready() -> void:
+	Scope.session.session_logged_out.connect(_on_session_logged_out)
+	_setup_chat()
+	_ensure_faction_choice_display()
 	_prepare_server_enemy_template()
 	world_attack_prefix = "%s-%d" % [str(Scope.session.current_user.id), Time.get_ticks_usec()]
 	$CanvasLayer/PlayerPanel/VBoxContainer/Username.text = "Player: " + Scope.session.current_user.username
@@ -74,10 +102,17 @@ func _ready() -> void:
 	$CanvasLayer/SocialPanel/VBoxContainer/MessageActions/SendMessage.pressed.connect(_on_send_message_pressed)
 	$CanvasLayer/PlayerDetailsPanel/VBoxContainer/Friend.pressed.connect(_on_profile_add_friend_pressed)
 	$CanvasLayer/PlayerDetailsPanel/VBoxContainer/SendMessage.pressed.connect(_on_profile_send_message_pressed)
+	$CanvasLayer/SettingsPanel.settings_applied.connect(_on_settings_applied)
+	$CanvasLayer/PlayerStatusFrame.target_friend_requested.connect(_on_target_friend_requested)
+	$CanvasLayer/PlayerStatusFrame.target_message_requested.connect(_on_target_message_requested)
+	$CanvasLayer/PlayerStatusFrame.target_inspect_requested.connect(_on_target_inspect_requested)
+	$CanvasLayer/PlayerStatusFrame.target_cleared.connect(_on_target_cleared)
 	$CanvasLayer/PlayerPanel/VBoxContainer/ChangeSprite.pressed.connect(_on_change_sprite_pressed)
-	var menu: PopupMenu = $CanvasLayer/Controls/HBoxContainer/MenuButton.get_popup()
+	$CanvasLayer/BettingPanel/VBoxContainer/PlaceBet.pressed.connect(_on_place_bet_pressed)
+	var menu: PopupMenu = $CanvasLayer/LocalChatDock/VBoxContainer/Footer/MenuButton.get_popup()
 	menu.id_pressed.connect(_on_menu_option_selected)
-	movable_panels = [$CanvasLayer/PlayerPanel, $CanvasLayer/LeaderboardPanel, $CanvasLayer/SocialPanel, $CanvasLayer/OnlinePanel, $CanvasLayer/AchievementsPanel, $CanvasLayer/BettingPanel, $CanvasLayer/BetHistoryPanel, $CanvasLayer/PlayerDetailsPanel]
+	$CanvasLayer/LocalChatDock/VBoxContainer/Footer/TargetButton.toggled.connect(_on_target_mode_toggled)
+	movable_panels = [$CanvasLayer/PlayerPanel, $CanvasLayer/LeaderboardPanel, $CanvasLayer/SocialPanel, $CanvasLayer/OnlinePanel, $CanvasLayer/AchievementsPanel, $CanvasLayer/BettingPanel, $CanvasLayer/BetHistoryPanel, $CanvasLayer/PlayerDetailsPanel, $CanvasLayer/SettingsPanel]
 	for panel: Control in movable_panels:
 		var close_button: Button = panel.get_node_or_null("VBoxContainer/Close") as Button
 		if close_button != null:
@@ -88,8 +123,17 @@ func _ready() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if _handle_target_cycle_event(event):
+		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
+			if target_mode_enabled and _pointer_is_over_ui():
+				return
+			if target_mode_enabled:
+				_select_world_target(get_global_mouse_position())
+				_set_target_mode(false)
+				get_viewport().set_input_as_handled()
+				return
 			for panel: Control in movable_panels:
 				if not panel.visible:
 					continue
@@ -103,6 +147,221 @@ func _input(event: InputEvent) -> void:
 			dragging_panel = null
 	elif event is InputEventMouseMotion and dragging_panel != null:
 		dragging_panel.position = event.position - drag_offset
+
+
+func _on_target_mode_toggled(enabled: bool) -> void:
+	_set_target_mode(enabled)
+
+
+func _handle_target_cycle_event(event: InputEvent) -> bool:
+	if _target_input_is_blocked():
+		return false
+	if event is InputEventKey:
+		var key_event := event as InputEventKey
+		if key_event.pressed and not key_event.echo and key_event.physical_keycode == KEY_TAB:
+			_release_target_focus()
+			_cycle_target(1)
+			get_viewport().set_input_as_handled()
+			return true
+	if event is InputEventJoypadButton:
+		var button_event := event as InputEventJoypadButton
+		if button_event.pressed and button_event.button_index == 10:
+			_release_target_focus()
+			_cycle_target(1)
+			get_viewport().set_input_as_handled()
+			return true
+		if button_event.pressed and button_event.button_index == 9:
+			_release_target_focus()
+			_cycle_target(-1)
+			get_viewport().set_input_as_handled()
+			return true
+	return false
+
+
+func _release_target_focus() -> void:
+	var focus_owner := get_viewport().gui_get_focus_owner()
+	if focus_owner != null:
+		focus_owner.release_focus()
+
+
+func _target_input_is_blocked() -> bool:
+	return $CanvasLayer/SettingsPanel.visible
+
+
+func _set_target_mode(enabled: bool) -> void:
+	target_mode_enabled = enabled
+	var button := $CanvasLayer/LocalChatDock/VBoxContainer/Footer/TargetButton as Button
+	button.button_pressed = enabled
+	button.text = "CANCEL TARGET" if enabled else "SELECT TARGET"
+
+
+func _pointer_is_over_ui() -> bool:
+	var hovered := get_viewport().gui_get_hovered_control()
+	return hovered != null and hovered.mouse_filter != Control.MOUSE_FILTER_IGNORE
+
+
+func _cycle_target(direction: int) -> void:
+	_validate_current_target()
+	var candidates: Array[Node] = _visible_target_candidates()
+	if candidates.is_empty():
+		_clear_current_target()
+		return
+	candidates.sort_custom(_sort_targets_by_distance)
+	var next_index: int = 0
+	var current_index: int = candidates.find(current_target)
+	if current_index >= 0:
+		next_index = posmod(current_index + direction, candidates.size())
+	_select_target_entity(candidates[next_index])
+
+
+func _validate_current_target() -> void:
+	if current_target == null or not is_instance_valid(current_target):
+		if current_target != null:
+			_clear_current_target()
+		return
+	var dying_value: Variant = current_target.get("dying")
+	var health_value: Variant = current_target.get("health")
+	if (dying_value != null and bool(dying_value)) or (health_value != null and int(health_value) <= 0):
+		_clear_current_target()
+
+
+func _clear_current_target() -> void:
+	_set_current_target(null)
+	$CanvasLayer/PlayerStatusFrame.clear_target()
+
+
+func _visible_target_candidates() -> Array[Node]:
+	var candidates: Array[Node] = []
+	var screen_rect: Rect2 = get_viewport().get_visible_rect()
+	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
+	for mob_value: Variant in authoritative_mobs.values():
+		if not is_instance_valid(mob_value):
+			continue
+		var mob := mob_value as Node2D
+		if _is_visible_target(mob, screen_rect, canvas_transform):
+			candidates.append(mob)
+	for enemy in $Enemies.get_children():
+		var local_enemy := enemy as Node2D
+		if local_enemy == null or authoritative_mobs.values().has(local_enemy):
+			continue
+		if _is_visible_target(local_enemy, screen_rect, canvas_transform):
+			candidates.append(local_enemy)
+	for remote_value: Variant in remote_players.values():
+		if not is_instance_valid(remote_value):
+			continue
+		var remote := remote_value as Node2D
+		if _is_visible_target(remote, screen_rect, canvas_transform):
+			candidates.append(remote)
+	return candidates
+
+
+func _is_visible_target(entity: Node2D, screen_rect: Rect2, canvas_transform: Transform2D) -> bool:
+	if entity == null or not is_instance_valid(entity) or entity.is_queued_for_deletion() or not entity.visible:
+		return false
+	var dying_value: Variant = entity.get("dying")
+	var health_value: Variant = entity.get("health")
+	if (dying_value != null and bool(dying_value)) or (health_value != null and int(health_value) <= 0):
+		return false
+	return screen_rect.grow(-8.0).has_point(canvas_transform * entity.global_position)
+
+
+func _sort_targets_by_distance(left: Node, right: Node) -> bool:
+	var left_node := left as Node2D
+	var right_node := right as Node2D
+	return $Player.global_position.distance_squared_to(left_node.global_position) < $Player.global_position.distance_squared_to(right_node.global_position)
+
+
+func _select_target_entity(target: Node) -> void:
+	_set_current_target(target)
+	if remote_players.values().has(target):
+		for user_id_value: Variant in remote_players.keys():
+			if remote_players[user_id_value] == target:
+				_on_player_selected(int(user_id_value))
+				return
+	$CanvasLayer/PlayerStatusFrame.set_enemy_target(target)
+	selected_player_id = 0
+	$CanvasLayer/PlayerDetailsPanel.visible = false
+
+
+func is_targeted_entity(entity: Node) -> bool:
+	return current_target == entity
+
+
+func _set_current_target(target: Node) -> void:
+	_remove_target_indicators(current_target)
+	current_target = target
+	if target == null or not is_instance_valid(target):
+		return
+	var indicator: Node2D = TARGET_INDICATOR_SCRIPT.new() as Node2D
+	indicator.name = "TargetIndicator"
+	indicator.position = Vector2(0, -18)
+	var target_scale: Vector2 = target.global_scale
+	indicator.scale = Vector2(
+		1.0 / maxf(absf(target_scale.x), 0.001),
+		1.0 / maxf(absf(target_scale.y), 0.001)
+	)
+	indicator.z_index = 50
+	target.add_child(indicator)
+
+
+func _remove_target_indicators(target: Node) -> void:
+	if target == null or not is_instance_valid(target):
+		return
+	for child: Node in target.get_children():
+		if child.get_script() != TARGET_INDICATOR_SCRIPT:
+			continue
+		# Freeing is deferred, so release the canonical name immediately in case
+		# this same entity is selected again before the end of the frame.
+		child.name = "RetiringTargetIndicator_%d" % child.get_instance_id()
+		child.queue_free()
+
+
+func _select_world_target(world_position: Vector2) -> void:
+	var nearest: Node = null
+	var nearest_distance := INF
+	var selection_radius := 42.0
+	var local_distance: float = $Player.global_position.distance_to(world_position)
+	if local_distance <= selection_radius:
+		nearest = $Player
+		nearest_distance = local_distance
+	for mob_value: Variant in authoritative_mobs.values():
+		var mob := mob_value as Node2D
+		if mob == null or not is_instance_valid(mob) or not mob.visible:
+			continue
+		var distance: float = mob.global_position.distance_to(world_position)
+		if distance <= selection_radius and distance < nearest_distance:
+			nearest = mob
+			nearest_distance = distance
+	for enemy in $Enemies.get_children():
+		var local_enemy := enemy as Node2D
+		if local_enemy == null or not is_instance_valid(local_enemy) or not local_enemy.visible or authoritative_mobs.values().has(local_enemy):
+			continue
+		var enemy_distance: float = local_enemy.global_position.distance_to(world_position)
+		if enemy_distance <= selection_radius and enemy_distance < nearest_distance:
+			nearest = local_enemy
+			nearest_distance = enemy_distance
+	for user_id_value: Variant in remote_players.keys():
+		var remote := remote_players[user_id_value] as Node2D
+		if remote == null or not is_instance_valid(remote):
+			continue
+		var remote_distance: float = remote.global_position.distance_to(world_position)
+		if remote_distance <= selection_radius and remote_distance < nearest_distance:
+			nearest = remote
+			nearest_distance = remote_distance
+	if nearest == null:
+		return
+	_set_current_target(nearest)
+	if nearest == $Player:
+		_show_window($CanvasLayer/PlayerPanel)
+	elif remote_players.values().has(nearest):
+		for user_id_value: Variant in remote_players.keys():
+			if remote_players[user_id_value] == nearest:
+				_on_player_selected(int(user_id_value))
+				return
+	else:
+		$CanvasLayer/PlayerStatusFrame.set_enemy_target(nearest)
+		selected_player_id = 0
+		$CanvasLayer/PlayerDetailsPanel.visible = false
 
 
 func _on_menu_option_selected(option_id: int) -> void:
@@ -121,6 +380,14 @@ func _on_menu_option_selected(option_id: int) -> void:
 		5:
 			_show_window($CanvasLayer/BettingPanel)
 			_show_window($CanvasLayer/BetHistoryPanel)
+		6:
+			_show_window($CanvasLayer/SettingsPanel)
+		7:
+			_on_logout_pressed()
+
+
+func _on_settings_applied() -> void:
+	$CanvasLayer/SettingsPanel.move_to_front()
 
 
 func _hide_all_windows() -> void:
@@ -137,11 +404,13 @@ func _close_window(panel: Control) -> void:
 	panel.visible = false
 	if panel == $CanvasLayer/PlayerDetailsPanel:
 		selected_player_id = 0
+		$CanvasLayer/PlayerStatusFrame.clear_target()
 	if dragging_panel == panel:
 		dragging_panel = null
 
 
 func _process(delta: float) -> void:
+	_validate_current_target()
 	refresh_elapsed += delta
 	_update_player_status()
 	player_state_save_elapsed += delta
@@ -151,21 +420,36 @@ func _process(delta: float) -> void:
 		await _save_player_state()
 		saving_player_state = false
 	Scope.realtime.poll()
-	_process_movement_sync(delta)
-	$CanvasLayer/OnlinePanel/VBoxContainer/Online.text = "You: online" if Scope.realtime.connected else "You: offline"
-	if Scope.realtime.connected and not realtime_was_connected:
+	var realtime_connected_now := Scope.realtime.is_open()
+	if realtime_connected_now and not realtime_was_connected:
 		realtime_was_connected = true
-	elif not Scope.realtime.connected and realtime_was_connected:
+		realtime_reconnect_elapsed = 0.0
+		realtime_reconnect_attempting = false
+		$CanvasLayer/OnlinePanel/VBoxContainer/Online.text = "You: online"
+	elif not realtime_connected_now and realtime_was_connected:
 		realtime_was_connected = false
+		realtime_reconnect_elapsed = 0.0
+		realtime_reconnect_attempting = false
 		realtime_subscribed = false
 		world_join_requested = false
 		world_map_id = ""
+		chat_history_scope_id = ""
+		_reset_movement_send_state()
 		last_world_sequence = 0
 		pending_attack_mobs.clear()
 		player_stats_request_sent = false
 		pending_stat_transactions.clear()
 		_clear_authoritative_mobs()
 		_clear_remote_players()
+	if not realtime_connected_now:
+		realtime_reconnect_elapsed += delta
+		if realtime_reconnect_elapsed >= realtime_reconnect_delay and not realtime_reconnect_attempting:
+			_attempt_realtime_reconnect()
+	_process_movement_sync(delta)
+	if Scope.realtime.connected:
+		$CanvasLayer/OnlinePanel/VBoxContainer/Online.text = "You: online"
+	elif not realtime_reconnect_attempting:
+		$CanvasLayer/OnlinePanel/VBoxContainer/Online.text = "You: offline"
 	if not realtime_subscribed and Scope.realtime.is_open():
 		Scope.realtime.subscribe("leaderboard/gold")
 		Scope.realtime.subscribe("player/%d" % Scope.session.current_user.id)
@@ -188,14 +472,15 @@ func _process(delta: float) -> void:
 
 func _refresh_game_state() -> void:
 	refreshing = true
-	var wallet_result := await Scope.wizards_wager.balance()
+	var betting_service: BettingPanelService = $CanvasLayer/BettingPanel.get("service")
+	var wallet_result := await betting_service.balance()
 	if wallet_result.success:
 		var wallet: ScopeWizardsWagerWallet = wallet_result.data
 		$CanvasLayer/PlayerPanel/VBoxContainer/Gold.text = "GOLD: %d" % wallet.gold
 	else:
 		_show_error(wallet_result.error)
 
-	var bet_result := await Scope.wizards_wager.current_bet()
+	var bet_result := await betting_service.current_bet()
 	if bet_result.success:
 		active_bet = bet_result.data
 		_sync_server_clock(active_bet.server_time)
@@ -222,13 +507,14 @@ func _refresh_game_state() -> void:
 
 
 func _load_leaderboard() -> void:
-	var result := await Scope.leaderboards.top(LEADERBOARD_METRIC, 10)
+	var leaderboard_service: LeaderboardPanelService = $CanvasLayer/LeaderboardPanel.get("service")
+	var result := await leaderboard_service.top(LEADERBOARD_METRIC, 10)
 	if result.success:
 		$CanvasLayer/LeaderboardPanel/VBoxContainer/Leaderboard.text = _format_leaderboard(result.data)
 		_populate_leaderboard_buttons(result.data)
 	else:
 		_show_error(result.error)
-	var rank_result := await Scope.leaderboards.rank(LEADERBOARD_METRIC)
+	var rank_result := await leaderboard_service.rank(LEADERBOARD_METRIC)
 	if rank_result.success:
 		$CanvasLayer/PlayerPanel/VBoxContainer/Rank.text = "Your rank: %s" % _rank_text(rank_result.data)
 	else:
@@ -236,7 +522,8 @@ func _load_leaderboard() -> void:
 
 
 func _load_bet_history() -> void:
-	var result := await Scope.wizards_wager.history(50)
+	var history_service: BetHistoryPanelService = $CanvasLayer/BetHistoryPanel.get("service")
+	var result := await history_service.history(50)
 	if not result.success:
 		$CanvasLayer/BetHistoryPanel/VBoxContainer/History.text = "Bet history unavailable: " + result.error
 		return
@@ -254,7 +541,8 @@ func _load_bet_history() -> void:
 
 
 func _load_achievements() -> void:
-	var result := await Scope.achievements.list()
+	var achievement_service: AchievementsPanelService = $CanvasLayer/AchievementsPanel.get("service")
+	var result := await achievement_service.list()
 	if not result.success:
 		$CanvasLayer/AchievementsPanel/VBoxContainer/Achievements.text = "Unable to load achievements: " + result.error
 		return
@@ -269,7 +557,8 @@ func _load_achievements() -> void:
 
 
 func _load_social() -> void:
-	var notifications_result := await Scope.notifications.list(true)
+	var social_service: SocialPanelService = $CanvasLayer/SocialPanel.get("service")
+	var notifications_result := await social_service.notifications()
 	if notifications_result.success:
 		var messages: Array[String] = ["Unread messages"]
 		var notifications: Array[ScopeNotification] = notifications_result.data
@@ -279,7 +568,7 @@ func _load_social() -> void:
 	else:
 		$CanvasLayer/SocialPanel/VBoxContainer/Messages.text = "Messages unavailable: " + notifications_result.error
 
-	var friends_result := await Scope.friends.list()
+	var friends_result := await social_service.friends()
 	if friends_result.success:
 		var friends: Array[String] = ["Friends"]
 		var friend_items: Array[ScopeFriend] = friends_result.data
@@ -291,7 +580,8 @@ func _load_social() -> void:
 
 
 func _load_online_players() -> void:
-	var result := await Scope.realtime.online()
+	var online_service: OnlinePlayersPanelService = $CanvasLayer/OnlinePanel.get("service")
+	var result := await online_service.online_players()
 	if not result.success:
 		$CanvasLayer/OnlinePanel/VBoxContainer/OnlinePlayers.text = "Online players unavailable: " + result.error
 		return
@@ -305,14 +595,181 @@ func _load_online_players() -> void:
 
 
 func _connect_realtime() -> void:
-	Scope.realtime.message_received.connect(_on_realtime_message)
+	if not Scope.realtime.message_received.is_connected(_on_realtime_message):
+		Scope.realtime.message_received.connect(_on_realtime_message)
 	var result := Scope.realtime.connect_with_session(Scope.session)
 	if not result.success:
 		$CanvasLayer/SocialPanel/VBoxContainer/Messages.text = "Realtime unavailable: " + result.error
 
 
+func _attempt_realtime_reconnect() -> void:
+	realtime_reconnect_attempting = true
+	realtime_reconnect_elapsed = 0.0
+	$CanvasLayer/OnlinePanel/VBoxContainer/Online.text = "Reconnecting..."
+	_connect_realtime()
+	realtime_reconnect_attempting = false
+
+
+func _on_session_logged_out() -> void:
+	if get_tree().current_scene != self:
+		return
+	get_tree().change_scene_to_file("res://login.tscn")
+
+
+func _setup_chat() -> void:
+	chat_dock = $CanvasLayer/LocalChatDock as LocalChatDock
+	chat_dock.message_submitted.connect(_send_chat_message)
+
+
+func _send_chat_message(text: String) -> void:
+	var trimmed := text.strip_edges()
+	if trimmed.is_empty():
+		return
+	chat_message_sequence += 1
+	var chat_service: ChatPanelService = chat_dock.get("service")
+	var result := await chat_service.send(trimmed, chat_message_sequence)
+	if not result.success:
+		chat_dock.show_status("Message failed: " + result.error, true)
+		return
+	chat_dock.clear_input()
+	chat_dock.show_status("Sending...")
+
+
+func _handle_chat_message(message: Dictionary) -> void:
+	var data_value: Variant = message.get("data", {})
+	if not data_value is Dictionary:
+		return
+	var data: Dictionary = data_value
+	_display_chat_message(data, true)
+
+
+func _display_chat_message(data: Dictionary, show_bubble: bool) -> void:
+	if str(data.get("channel_type", "")) != "general":
+		return
+	var message_id := str(data.get("message_id", ""))
+	if not message_id.is_empty() and delivered_chat_message_ids.has(message_id):
+		return
+	if not message_id.is_empty():
+		delivered_chat_message_ids[message_id] = true
+		while delivered_chat_message_ids.size() > 150:
+			delivered_chat_message_ids.erase(delivered_chat_message_ids.keys()[0])
+	var sender_id := int(data.get("sender_id", 0))
+	var sender_username := str(data.get("sender_username", "Unknown"))
+	var text := str(data.get("text", "")).strip_edges()
+	if sender_id <= 0 or text.is_empty():
+		return
+	chat_dock.add_chat_message(sender_username, text)
+	if not show_bubble:
+		return
+	var bubble_lifetime := 6.0
+	var bubble_value: Variant = data.get("bubble", {})
+	if bubble_value is Dictionary:
+		var bubble: Dictionary = bubble_value
+		if not bool(bubble.get("enabled", true)):
+			return
+		bubble_lifetime = clampf(float(bubble.get("lifetime_seconds", bubble_lifetime)), 1.0, 12.0)
+	_show_chat_bubble(sender_id, sender_username, text, bubble_lifetime)
+
+
+func _handle_available_chat_channels(message: Dictionary) -> void:
+	var data_value: Variant = message.get("data", {})
+	if not data_value is Dictionary or not Scope.realtime.is_open():
+		return
+	var data: Dictionary = data_value
+	var channels_value: Variant = data.get("channels", [])
+	if not channels_value is Array:
+		return
+	for value: Variant in channels_value:
+		if not value is Dictionary:
+			continue
+		var channel: Dictionary = value
+		if str(channel.get("channel_type", "")) != "general":
+			continue
+		var scope_id := str(channel.get("scope_id", ""))
+		if scope_id.is_empty() or scope_id == chat_history_scope_id:
+			return
+		chat_history_scope_id = scope_id
+		var chat_service: ChatPanelService = chat_dock.get("service")
+		chat_service.request_history()
+		return
+
+
+func _handle_chat_history(message: Dictionary) -> void:
+	var data_value: Variant = message.get("data", {})
+	if not data_value is Dictionary:
+		return
+	var data: Dictionary = data_value
+	var channel_value: Variant = data.get("channel", {})
+	if not channel_value is Dictionary or str((channel_value as Dictionary).get("channel_type", "")) != "general":
+		return
+	var messages_value: Variant = data.get("messages", [])
+	if not messages_value is Array:
+		return
+	for value: Variant in messages_value:
+		if value is Dictionary:
+			_display_chat_message(value as Dictionary, false)
+
+
+func _handle_chat_history_rejected(message: Dictionary) -> void:
+	var data_value: Variant = message.get("data", {})
+	if not data_value is Dictionary or chat_dock == null:
+		return
+	var data: Dictionary = data_value
+	chat_dock.show_status(str(data.get("message", "Unable to load chat history.")), true)
+
+
+func _handle_chat_message_accepted(message: Dictionary) -> void:
+	if chat_dock != null:
+		chat_dock.show_status("")
+
+
+func _handle_chat_message_rejected(message: Dictionary) -> void:
+	var data_value: Variant = message.get("data", {})
+	if not data_value is Dictionary or chat_dock == null:
+		return
+	var data: Dictionary = data_value
+	var reason := str(data.get("message", "Message rejected."))
+	chat_dock.show_status(reason, true)
+
+
+func _show_chat_bubble(sender_id: int, sender_username: String, text: String, lifetime_seconds: float) -> void:
+	var actor: Node2D = $Player if sender_id == Scope.session.current_user.id else remote_players.get(sender_id)
+	if actor == null or not is_instance_valid(actor):
+		return
+	var bubble := actor.get_node_or_null("ChatBubble") as LocalChatBubble
+	if bubble == null:
+		bubble = CHAT_BUBBLE_SCRIPT.new() as LocalChatBubble
+		bubble.name = "ChatBubble"
+		actor.add_child(bubble)
+	bubble.show_chat_message(sender_username, text, lifetime_seconds)
+
+
 func _on_realtime_message(message: Dictionary) -> void:
 	var message_type := str(message.get("type", ""))
+	if message_type == "chat_message":
+		_handle_chat_message(message)
+		return
+	if message_type == "chat_message_accepted":
+		_handle_chat_message_accepted(message)
+		return
+	if message_type == "chat_message_rejected":
+		_handle_chat_message_rejected(message)
+		return
+	if message_type == "chat_channels_available":
+		_handle_available_chat_channels(message)
+		return
+	if message_type == "chat_history":
+		_handle_chat_history(message)
+		return
+	if message_type == "chat_history_rejected":
+		_handle_chat_history_rejected(message)
+		return
+	if message_type == "player_faction_reputation_changed":
+		_handle_faction_reputation_changed(message)
+		return
+	if message_type == "player_status":
+		_handle_player_status_message(message)
+		return
 	if message_type in ["player_stats", "player_stats_changed", "player_stats_response", "player_stats_updated", "get_player_stats", "get_player_stats_response", "stat_point_spent", "stats_changed", "player_progression_changed", "experience_gained", "xp_gained"]:
 		_handle_authoritative_stats_message(message_type, message)
 		return
@@ -329,6 +786,106 @@ func _on_realtime_message(message: Dictionary) -> void:
 		_load_online_players()
 	elif channel.begins_with("player/"):
 		_load_social()
+
+
+func _handle_faction_reputation_changed(message: Dictionary) -> void:
+	var data_value: Variant = message.get("data", {})
+	if data_value is Dictionary:
+		# The event contains the complete, absolute PlayerFactionState. Do not
+		# apply its deltas locally; attack acknowledgements carry the same state.
+		_apply_faction_state(data_value)
+
+
+func _apply_faction_state(value: Variant) -> void:
+	if not value is Dictionary:
+		return
+	var incoming_state: Dictionary = value
+	if not incoming_state.has("standings"):
+		return
+	var player_id := int(incoming_state.get("player_id", 0))
+	if player_id > 0 and player_id != int(Scope.session.current_user.id):
+		return
+	var standings_value: Variant = incoming_state.get("standings", [])
+	if not standings_value is Array:
+		return
+	faction_state = incoming_state.duplicate(true)
+	_update_faction_choice_display()
+
+
+func _ensure_faction_choice_display() -> void:
+	if faction_choice_container != null:
+		return
+	var player_panel_content := $CanvasLayer/PlayerPanel/VBoxContainer as VBoxContainer
+	faction_choice_container = VBoxContainer.new()
+	faction_choice_container.name = "FactionChoice"
+	faction_choice_container.add_theme_constant_override("separation", 3)
+	player_panel_content.add_child(faction_choice_container)
+	faction_choice_title = Label.new()
+	faction_choice_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	faction_choice_container.add_child(faction_choice_title)
+	faction_choice_container.visible = false
+
+
+func _update_faction_choice_display() -> void:
+	_ensure_faction_choice_display()
+	if faction_state.is_empty():
+		faction_choice_container.visible = false
+		return
+	faction_choice_container.visible = true
+	var choice_locked := bool(faction_state.get("choice_locked", false))
+	var committed_faction_id := str(faction_state.get("committed_faction_id", ""))
+	if choice_locked:
+		faction_choice_title.text = "Faction: %s" % (committed_faction_id.capitalize() if not committed_faction_id.is_empty() else "Committed")
+		for row_value: Variant in faction_choice_rows.values():
+			(row_value as Control).visible = false
+		return
+	faction_choice_title.text = "Faction choice — defeat Knights to support their rival"
+	var threshold := maxf(float(faction_state.get("choice_threshold", 100)), 1.0)
+	var visible_rows: Dictionary = {}
+	var standings_value: Variant = faction_state.get("standings", [])
+	if standings_value is Array:
+		for standing_value: Variant in standings_value:
+			if not standing_value is Dictionary:
+				continue
+			var standing: Dictionary = standing_value
+			var faction_id := str(standing.get("faction_id", ""))
+			if faction_id.is_empty():
+				continue
+			visible_rows[faction_id] = true
+			var row := _faction_choice_row(faction_id)
+			row.visible = true
+			var display_name := str(standing.get("display_name", faction_id.capitalize()))
+			var reputation := float(standing.get("reputation", 0))
+			var relationship := str(standing.get("relationship", "hostile")).capitalize()
+			var label := row.get_node("Label") as Label
+			var progress := row.get_node("Progress") as ProgressBar
+			label.text = "%s: %d / %d (%s)" % [display_name, int(reputation), int(threshold), relationship]
+			progress.max_value = threshold
+			progress.value = clampf(reputation, 0.0, threshold)
+	for faction_id_value: Variant in faction_choice_rows.keys():
+		var faction_id := str(faction_id_value)
+		if not visible_rows.has(faction_id):
+			(faction_choice_rows[faction_id] as Control).visible = false
+
+
+func _faction_choice_row(faction_id: String) -> VBoxContainer:
+	var existing: Variant = faction_choice_rows.get(faction_id)
+	if existing is VBoxContainer:
+		return existing as VBoxContainer
+	var row := VBoxContainer.new()
+	row.name = "%sRow" % faction_id.capitalize()
+	var label := Label.new()
+	label.name = "Label"
+	row.add_child(label)
+	var progress := ProgressBar.new()
+	progress.name = "Progress"
+	progress.show_percentage = false
+	progress.custom_minimum_size = Vector2(180.0, 14.0)
+	row.add_child(progress)
+	faction_choice_container.add_child(row)
+	faction_choice_rows[faction_id] = row
+	return row
+
 
 func _handle_authoritative_stats_message(message_type: String, message: Dictionary) -> void:
 	var data_value: Variant = message.get("data", {})
@@ -350,6 +907,14 @@ func _handle_authoritative_stats_message(message_type: String, message: Dictiona
 		player_state_value = data.get("player_stats")
 	if player_state_value is Dictionary and not (player_state_value as Dictionary).is_empty():
 		authoritative_state = player_state_value
+	_apply_faction_state(data.get("faction_state", {}))
+	if authoritative_state is Dictionary:
+		_apply_faction_state((authoritative_state as Dictionary).get("faction_state", {}))
+	var target_player_id := int(data.get("player_id", 0))
+	if authoritative_state is Dictionary:
+		target_player_id = int((authoritative_state as Dictionary).get("player_id", target_player_id))
+	if target_player_id > 0 and target_player_id != int(Scope.session.current_user.id):
+		return
 	if $Player.has_method("apply_authoritative_stats"):
 		$Player.call("apply_authoritative_stats", authoritative_state)
 	_update_level_up_panel()
@@ -403,9 +968,9 @@ func _handle_world_message(message_type: String, message: Dictionary) -> void:
 			if not acknowledged_attack_id.is_empty():
 				pending_attack_mobs.erase(acknowledged_attack_id)
 			_apply_authoritative_mob_damage(data)
-			if data.has("experience") or data.has("level") or data.has("stats"):
-				if $Player.has_method("apply_authoritative_stats"):
-					$Player.call("apply_authoritative_stats", data)
+			# attack_ack describes the target and therefore its health may be zero.
+			# Player progression is applied only from player_stats_changed, which
+			# carries the player's complete authoritative state.
 		"player_power_up_activated":
 			if int(data.get("player_id", Scope.session.current_user.id)) == int(Scope.session.current_user.id):
 				$Player.call("apply_authoritative_power_up", data)
@@ -434,7 +999,11 @@ func _request_world_resync() -> void:
 		world_join_requested = true
 
 func _apply_world_snapshot(data: Dictionary) -> void:
-	world_map_id = str(data.get("map_id", WORLD_MAP_ID))
+	_apply_faction_state(data.get("faction_state", {}))
+	var incoming_map_id := str(data.get("map_id", WORLD_MAP_ID))
+	if not world_map_id.is_empty() and incoming_map_id != world_map_id:
+		_clear_remote_players()
+	world_map_id = incoming_map_id
 	last_world_sequence = int(data.get("sequence", 0))
 	var snapshot_ids: Dictionary = {}
 	var snapshot_received_at := float(Time.get_ticks_msec()) / 1000.0
@@ -446,16 +1015,21 @@ func _apply_world_snapshot(data: Dictionary) -> void:
 	var mob_count: int = 0
 	if mobs_value is Array:
 		mob_count = mobs_value.size()
+	var combatants_value: Variant = data.get("combatants", [])
+	var presented_mobs: Array = []
 	if mobs_value is Array:
-		for mob_value: Variant in mobs_value:
-			if not mob_value is Dictionary:
-				continue
-			var mob_data: Dictionary = mob_value
-			var mob_id := str(mob_data.get("mob_id", ""))
-			if mob_id.is_empty():
-				continue
-			snapshot_ids[mob_id] = true
-			_spawn_or_update_authoritative_mob(mob_data, snapshot_received_at)
+		presented_mobs.append_array(mobs_value)
+	if combatants_value is Array:
+		presented_mobs.append_array(combatants_value)
+	for mob_value: Variant in presented_mobs:
+		if not mob_value is Dictionary:
+			continue
+		var mob_data: Dictionary = mob_value
+		var mob_id := str(mob_data.get("mob_id", ""))
+		if mob_id.is_empty():
+			continue
+		snapshot_ids[mob_id] = true
+		_spawn_or_update_authoritative_mob(mob_data, snapshot_received_at)
 	for mob_id_value: Variant in authoritative_mobs.keys():
 		var mob_id := str(mob_id_value)
 		if not snapshot_ids.has(mob_id):
@@ -463,15 +1037,25 @@ func _apply_world_snapshot(data: Dictionary) -> void:
 
 func _apply_mob_snapshot(data: Dictionary) -> void:
 	var mobs_value: Variant = data.get("mobs", [])
-	if not mobs_value is Array:
-		return
+	var combatants_value: Variant = data.get("combatants", [])
 	var snapshot_received_at := float(Time.get_ticks_msec()) / 1000.0
-	for mob_value: Variant in mobs_value:
-		if mob_value is Dictionary:
-			_spawn_or_update_authoritative_mob(mob_value, snapshot_received_at)
+	if mobs_value is Array:
+		for mob_value: Variant in mobs_value:
+			if mob_value is Dictionary:
+				_spawn_or_update_authoritative_mob(mob_value, snapshot_received_at)
+	if combatants_value is Array:
+		for combatant_value: Variant in combatants_value:
+			if combatant_value is Dictionary:
+				_spawn_or_update_authoritative_mob(combatant_value, snapshot_received_at)
 
 func _prepare_server_enemy_template() -> void:
-	var template_names: Dictionary = {"zombie": "Zombie", "goblin": "Goblin"}
+	var template_names: Dictionary = {
+		"zombie": "Zombie",
+		"goblin": "Goblin",
+		"skeleton": "Skeleton",
+		"justice_knight": "NPC",
+		"avenger_knight": "NPC"
+	}
 	for mob_type_value: Variant in template_names.keys():
 		var mob_type := str(mob_type_value)
 		var template_name := str(template_names[mob_type_value])
@@ -489,9 +1073,32 @@ func _prepare_server_enemy_template() -> void:
 		var original_enemy_collision := existing_enemy.get_node_or_null("EnemyArea/EnemyCollision") as CollisionShape2D
 		if original_enemy_collision != null:
 			original_enemy_collision.set_deferred("disabled", true)
-		var original_bite_hitbox := existing_enemy.get_node_or_null("BiteHitbox") as Area2D
-		if original_bite_hitbox != null:
-			original_bite_hitbox.set_deferred("monitoring", false)
+		var original_attack_hitbox := existing_enemy.get_node_or_null("BiteHitbox") as Area2D
+		if original_attack_hitbox == null:
+			original_attack_hitbox = existing_enemy.get_node_or_null("AttackHitbox") as Area2D
+		if original_attack_hitbox != null:
+			original_attack_hitbox.set_deferred("monitoring", false)
+			original_attack_hitbox.set_deferred("monitorable", false)
+	for enemy in $Enemies.get_children():
+		_connect_enemy_target(enemy)
+
+
+func _connect_enemy_target(enemy: Node) -> void:
+	if enemy == null:
+		return
+	var enemy_area := enemy.get_node_or_null("EnemyArea") as Area2D
+	if enemy_area == null or enemy_area.input_event.is_connected(_on_enemy_area_input_event):
+		return
+	enemy_area.input_pickable = true
+	enemy_area.input_event.connect(_on_enemy_area_input_event.bind(enemy))
+
+
+func _on_enemy_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int, enemy: Node) -> void:
+	if event is InputEventMouseButton and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT and (event as InputEventMouseButton).pressed:
+		_set_current_target(enemy)
+		$CanvasLayer/PlayerStatusFrame.set_enemy_target(enemy)
+		selected_player_id = 0
+		$CanvasLayer/PlayerDetailsPanel.visible = false
 
 func _spawn_or_update_authoritative_mob(data: Dictionary, snapshot_received_at: float = -1.0) -> void:
 	var mob_id := str(data.get("mob_id", ""))
@@ -499,34 +1106,53 @@ func _spawn_or_update_authoritative_mob(data: Dictionary, snapshot_received_at: 
 		push_warning("[World] Ignoring mob event without mob_id")
 		return
 	var mob_type := str(data.get("mob_type", "zombie")).to_lower()
+	var visual_id := str(data.get("visual_id", "")).to_lower()
+	var template_key := visual_id if server_enemy_templates.has(visual_id) else mob_type
 	var enemy: Node = authoritative_mobs.get(mob_id)
 	if enemy == null or not is_instance_valid(enemy):
-		var selected_template: Node = server_enemy_templates.get(mob_type, server_enemy_templates.get("zombie"))
+		var selected_template: Node = server_enemy_templates.get(template_key, server_enemy_templates.get("zombie"))
 		if selected_template == null:
 			push_error("[World] Cannot create mob %s because no enemy template is available." % mob_id)
 			return
-		if not server_enemy_templates.has(mob_type):
-			push_warning("[World] No visual mapping for mob_type=%s; using the Zombie template." % mob_type)
+		if not server_enemy_templates.has(template_key):
+			push_warning("[World] No visual mapping for mob_type=%s visual_id=%s; using the Zombie template." % [mob_type, visual_id])
 		enemy = selected_template.duplicate()
 		enemy.name = "Mob_%s" % mob_id
+		enemy.visible = true
 		$Enemies.add_child(enemy)
 		if enemy.has_method("set_server_authoritative"):
 			enemy.call("set_server_authoritative", mob_id)
+		_connect_enemy_target(enemy)
 		authoritative_mobs[mob_id] = enemy
+		enemy.tree_exited.connect(_on_authoritative_mob_tree_exited.bind(mob_id, enemy), CONNECT_ONE_SHOT)
 	if enemy.has_method("apply_server_snapshot"):
 		enemy.call("apply_server_snapshot", data, snapshot_received_at)
+
+
+func _on_authoritative_mob_tree_exited(mob_id: String, enemy: Node) -> void:
+	if authoritative_mobs.get(mob_id) == enemy:
+		authoritative_mobs.erase(mob_id)
+
 
 func _apply_authoritative_mob_damage(data: Dictionary) -> void:
 	var mob_id := str(data.get("mob_id", ""))
 	var enemy: Node = authoritative_mobs.get(mob_id)
 	if enemy != null and is_instance_valid(enemy) and enemy.has_method("apply_server_damage"):
 		enemy.call("apply_server_damage", data)
+	if int(data.get("remaining_health", 1)) <= 0 and enemy != null and is_instance_valid(enemy):
+		_remove_target_indicators(enemy)
+		if current_target == enemy:
+			_clear_current_target()
 
 func _apply_authoritative_mob_death(data: Dictionary) -> void:
 	var mob_id := str(data.get("mob_id", ""))
 	var enemy: Node = authoritative_mobs.get(mob_id)
 	if enemy != null and is_instance_valid(enemy) and enemy.has_method("apply_server_death"):
 		enemy.call("apply_server_death", data)
+	if enemy != null and is_instance_valid(enemy):
+		_remove_target_indicators(enemy)
+		if current_target == enemy:
+			_clear_current_target()
 
 func _on_player_game_over_finished() -> void:
 	player_game_over_finished = true
@@ -552,6 +1178,10 @@ func _remove_authoritative_mob(mob_id: String) -> void:
 	var enemy: Node = authoritative_mobs.get(mob_id)
 	authoritative_mobs.erase(mob_id)
 	if enemy != null and is_instance_valid(enemy):
+		if current_target == enemy:
+			_clear_current_target()
+		if $CanvasLayer/PlayerStatusFrame.get("enemy_target") == enemy:
+			$CanvasLayer/PlayerStatusFrame.clear_target()
 		enemy.queue_free()
 
 func _clear_authoritative_mobs() -> void:
@@ -594,29 +1224,62 @@ func _process_movement_sync(delta: float) -> void:
 	if not Scope.realtime.is_open() or not realtime_subscribed:
 		return
 	movement_elapsed += delta
-	if movement_elapsed < MOVEMENT_UPDATE_INTERVAL:
-		return
-	movement_elapsed = 0.0
 	var local_player: CharacterBody2D = $Player
-	if has_sent_position and local_player.position == last_sent_position:
+	var local_velocity := local_player.velocity
+	var local_facing := 1 if float(local_player.get("facing_direction")) >= 0.0 else -1
+	var local_grounded := local_player.is_on_floor()
+	var movement_state := _local_player_movement_state(local_player)
+	var local_map_id := world_map_id if not world_map_id.is_empty() else WORLD_MAP_ID
+	var position_changed := not has_sent_position or not local_player.position.is_equal_approx(last_sent_position)
+	var teleporting := has_sent_position and (
+		local_player.position.distance_to(last_sent_position) > 250.0
+		or (not last_sent_map_id.is_empty() and local_map_id != last_sent_map_id)
+	)
+	var state_changed := (
+		not is_equal_approx(local_player.rotation, last_sent_rotation)
+		or local_facing != last_sent_facing
+		or local_grounded != last_sent_grounded
+		or movement_state != last_sent_movement_state
+		or local_map_id != last_sent_map_id
+		or teleporting
+	)
+	var cadence_due := movement_elapsed >= MOVEMENT_UPDATE_INTERVAL
+	if not cadence_due and not state_changed:
 		return
+	if cadence_due:
+		movement_elapsed = 0.0
+	if not position_changed and not state_changed:
+		return
+	var next_sequence := movement_sequence + 1
 	var payload := {
 		"user_id": Scope.session.current_user.id,
 		"position": {"x": local_player.position.x, "y": local_player.position.y},
+		"velocity": {"x": local_velocity.x, "y": local_velocity.y},
 		"rotation": local_player.rotation,
+		"facing": local_facing,
+		"grounded": local_grounded,
+		"movement_state": movement_state,
+		"sequence": next_sequence,
 		"timestamp": Time.get_unix_time_from_system(),
-		"sprite_file_id": sprite_file_id
+		"sprite_file_id": sprite_file_id,
+		"map_id": local_map_id,
+		"teleport": teleporting
 	}
 	var result := Scope.realtime.publish(MOVEMENT_CHANNEL, payload)
 	if result.success:
+		movement_sequence = next_sequence
 		last_sent_position = local_player.position
+		last_sent_velocity = local_velocity
+		last_sent_rotation = local_player.rotation
+		last_sent_facing = local_facing
+		last_sent_grounded = local_grounded
+		last_sent_movement_state = movement_state
+		last_sent_map_id = local_map_id
 		has_sent_position = true
 		movement_packets_sent += 1
 
 
 func _handle_movement_message(message: Dictionary) -> void:
-	# This benchmark intentionally applies packets immediately. There is no
-	# interpolation or client prediction so the raw realtime latency is visible.
 	var data: Variant = message.get("data", {})
 	if not data is Dictionary:
 		return
@@ -627,25 +1290,13 @@ func _handle_movement_message(message: Dictionary) -> void:
 	var position_data: Variant = movement.get("position", {})
 	if not position_data is Dictionary:
 		return
-	var position_dictionary: Dictionary = position_data
-	var position := Vector2(float(position_dictionary.get("x", 0.0)), float(position_dictionary.get("y", 0.0)))
-	var rotation: float = float(movement.get("rotation", 0.0))
 	var incoming_sprite_file_id: int = int(movement.get("sprite_file_id", 0))
 	var remote_entity: Node2D = remote_players.get(user_id)
 	if remote_entity == null or not is_instance_valid(remote_entity):
 		remote_entity = _create_remote_player(user_id)
-	var previous_position: Vector2 = remote_entity.position
-	remote_entity.position = position
-	remote_entity.rotation = rotation
-	var remote_sprite: AnimatedSprite2D = remote_entity.get_node("Sprite") as AnimatedSprite2D
 	if incoming_sprite_file_id > 0:
 		_ensure_remote_sprite(user_id, incoming_sprite_file_id, remote_entity)
-	if previous_position.distance_to(position) > 0.01:
-		remote_sprite.play("character_walk")
-		if absf(position.x - previous_position.x) > 0.01:
-			remote_sprite.flip_h = position.x < previous_position.x
-	else:
-		remote_sprite.play("character_idle")
+	remote_entity.call("push_movement_snapshot", movement)
 	movement_packets_received += 1
 
 
@@ -666,6 +1317,7 @@ func _create_remote_player(user_id: int) -> Node2D:
 	# Remote visuals are created dynamically from the existing local player's
 	# sprite resource, but do not copy player.gd, so they cannot accept local input.
 	var remote_entity := Node2D.new()
+	remote_entity.set_script(REMOTE_PLAYER_SCRIPT)
 	remote_entity.name = "RemotePlayer_%d" % user_id
 	remote_entity.z_index = $Player.z_index
 	remote_entity.scale = $Player.scale
@@ -675,29 +1327,15 @@ func _create_remote_player(user_id: int) -> Node2D:
 	remote_sprite.scale = $Player/Visual.scale
 	remote_sprite.animation = &"character_idle"
 	remote_entity.add_child(remote_sprite)
-	var name_label := Label.new()
-	name_label.name = "Name"
-	name_label.text = "Player %d" % user_id
-	name_label.position = Vector2(-45.0, -48.0)
-	name_label.z_index = 1
-	name_label.modulate = Color(0.05, 0.05, 0.05, 1.0)
-	remote_entity.add_child(name_label)
 	add_child(remote_entity)
 	remote_players[user_id] = remote_entity
-	_load_remote_player_name(user_id, remote_entity)
 	return remote_entity
-func _load_remote_player_name(user_id: int, remote_entity: Node2D) -> void:
-	var result := await Scope.wizards_wager.player_profile(user_id)
-	if not result.success or not is_instance_valid(remote_entity):
-		return
-	var profile: ScopeWizardsWagerPlayerProfile = result.data
-	var name_label: Label = remote_entity.get_node("Name") as Label
-	if name_label != null:
-		name_label.text = profile.username
 
 
 func _remove_remote_player(user_id: int) -> void:
 	var remote_player: Variant = remote_players.get(user_id)
+	if current_target == remote_player:
+		_set_current_target(null)
 	if remote_player is Node and is_instance_valid(remote_player):
 		(remote_player as Node).queue_free()
 	remote_players.erase(user_id)
@@ -716,7 +1354,8 @@ func _on_change_sprite_pressed() -> void:
 
 func _on_character_file_selected(path: String) -> void:
 	$CanvasLayer/BettingPanel/VBoxContainer/Status.text = "Uploading character..."
-	var result := await Scope.storage.upload(path, {"visibility": "application"})
+	var player_service: PlayerPanelService = $CanvasLayer/PlayerPanel.get("service")
+	var result := await player_service.upload_sprite(path)
 	if not result.success:
 		$CanvasLayer/BettingPanel/VBoxContainer/Status.text = "Character upload failed: " + result.error
 		return
@@ -734,7 +1373,8 @@ func _ensure_remote_sprite(user_id: int, file_id: int, remote_entity: Node2D) ->
 	if int(remote_sprite_file_ids.get(user_id, 0)) == file_id or int(remote_sprite_loading.get(user_id, 0)) == file_id:
 		return
 	remote_sprite_loading[user_id] = file_id
-	var result := await Scope.storage.download(file_id)
+	var player_service: PlayerPanelService = $CanvasLayer/PlayerPanel.get("service")
+	var result := await player_service.download_sprite(file_id)
 	var current_entity: Variant = remote_players.get(user_id)
 	if not is_instance_valid(remote_entity) or current_entity != remote_entity:
 		remote_sprite_loading.erase(user_id)
@@ -742,11 +1382,37 @@ func _ensure_remote_sprite(user_id: int, file_id: int, remote_entity: Node2D) ->
 	if result.success and result.data is PackedByteArray:
 		var frames: SpriteFrames = _sprite_frames_from_bytes(result.data)
 		if frames != null:
-			var remote_sprite: AnimatedSprite2D = remote_entity.get_node("Sprite") as AnimatedSprite2D
-			remote_sprite.sprite_frames = frames
-			remote_sprite.play("character_idle")
+			remote_entity.call("set_sprite_frames", frames)
 			remote_sprite_file_ids[user_id] = file_id
 	remote_sprite_loading.erase(user_id)
+
+
+func _local_player_movement_state(local_player: CharacterBody2D) -> String:
+	if bool(local_player.get("dead")):
+		return "death"
+	if bool(local_player.get("powering_up")):
+		return "power_up"
+	if bool(local_player.get("attacking")):
+		return "attack"
+	if float(local_player.get("hit_stun_timer")) > 0.0:
+		return "hit"
+	if not local_player.is_on_floor():
+		return "jump"
+	if absf(local_player.velocity.x) > 5.0:
+		return "walk"
+	return "idle"
+
+
+func _reset_movement_send_state() -> void:
+	movement_elapsed = 0.0
+	has_sent_position = false
+	last_sent_position = Vector2.ZERO
+	last_sent_velocity = Vector2.ZERO
+	last_sent_rotation = 0.0
+	last_sent_facing = 0
+	last_sent_grounded = false
+	last_sent_movement_state = ""
+	last_sent_map_id = ""
 
 
 func _apply_local_sprite(path: String) -> bool:
@@ -759,7 +1425,8 @@ func _apply_local_sprite(path: String) -> bool:
 
 
 func _restore_local_sprite() -> void:
-	var result := await Scope.storage.download(sprite_file_id)
+	var player_service: PlayerPanelService = $CanvasLayer/PlayerPanel.get("service")
+	var result := await player_service.download_sprite(sprite_file_id)
 	if not result.success or not result.data is PackedByteArray:
 		return
 	var frames: SpriteFrames = _sprite_frames_from_bytes(result.data)
@@ -805,18 +1472,9 @@ func _save_sprite_file_id(file_id: int) -> void:
 func _save_player_state() -> void:
 	if not Scope.is_logged_in():
 		return
-	var player: CharacterBody2D = $Player
-	var persistent_state: Dictionary = player.call("get_persistent_state") as Dictionary
-	var result := await Scope.database.write(PLAYER_STATE_KEY, {
-		"position": {"x": player.position.x, "y": player.position.y},
-		"rotation": player.rotation,
-		"sprite_file_id": sprite_file_id,
-		"level": persistent_state.get("level", 1),
-		"experience": persistent_state.get("experience", 0),
-		"unspent_stat_points": persistent_state.get("unspent_stat_points", 0),
-		"stats": persistent_state.get("stats", {}),
-		"resources": persistent_state.get("resources", {})
-	})
+	var player: Node = $Player
+	var player_service: PlayerPanelService = $CanvasLayer/PlayerPanel.get("service")
+	var result := await player_service.save_state(player, sprite_file_id)
 	if result.success:
 		player.call("clear_state_dirty")
 
@@ -824,7 +1482,8 @@ func _save_player_state() -> void:
 func _restore_player_state() -> void:
 	if not Scope.is_logged_in():
 		return
-	var result := await Scope.database.read(PLAYER_STATE_KEY)
+	var player_service: PlayerPanelService = $CanvasLayer/PlayerPanel.get("service")
+	var result := await player_service.load_state()
 	if not result.success:
 		return
 	var record: ScopeDatabaseRecord = result.data
@@ -842,22 +1501,7 @@ func _restore_player_state() -> void:
 
 func _update_player_status() -> void:
 	var player: Node = $Player
-	var health_bar: TextureProgressBar = $CanvasLayer/PlayerStatus/HealthProgressBar
-	var stamina_bar: TextureProgressBar = $CanvasLayer/PlayerStatus/StaminaProgressBar
-	var mana_bar: TextureProgressBar = $CanvasLayer/PlayerStatus/ManaProgressBar
-	var experience_bar: TextureProgressBar = $CanvasLayer/PlayerStatus/ExperienceProgressBar
-	var level: int = int(player.get("level"))
-	var experience: int = int(player.get("experience"))
-	var experience_to_next_level: int = int(player.call("get_experience_to_next_level"))
-	health_bar.max_value = float(player.get("max_health"))
-	health_bar.value = float(player.get("current_health"))
-	stamina_bar.max_value = float(player.get("max_stamina"))
-	stamina_bar.value = float(player.get("current_stamina"))
-	mana_bar.max_value = float(player.get("max_mana"))
-	mana_bar.value = float(player.get("current_mana"))
-	experience_bar.max_value = experience_to_next_level
-	experience_bar.value = experience
-	$CanvasLayer/PlayerStatus/LevelLabel.text = "LV %d" % level
+	$CanvasLayer/PlayerStatusFrame.set_local_player(player, Scope.session.current_user.username)
 
 
 func _on_player_level_up(_new_level: int, _available_points: int) -> void:
@@ -874,10 +1518,8 @@ func _on_stat_button_pressed(stat_name: String) -> void:
 	stat_transaction_sequence += 1
 	var transaction_id := "%s-stat-%06d" % [world_attack_prefix, stat_transaction_sequence]
 	pending_stat_transactions[transaction_id] = stat_name
-	var result := Scope.realtime.send_command("spend_stat_point", {
-		"transaction_id": transaction_id,
-		"stat": stat_name
-	})
+	var player_service: PlayerPanelService = $CanvasLayer/PlayerPanel.get("service")
+	var result := player_service.spend_stat_point(stat_name, transaction_id)
 	if not result.success:
 		pending_stat_transactions.erase(transaction_id)
 
@@ -928,7 +1570,8 @@ func _on_place_bet_pressed() -> void:
 		return
 	$CanvasLayer/BettingPanel/VBoxContainer/PlaceBet.disabled = true
 	$CanvasLayer/BettingPanel/VBoxContainer/Status.text = "Placing bet..."
-	var result := await Scope.wizards_wager.place_bet(amount, choice)
+	var betting_service: BettingPanelService = $CanvasLayer/BettingPanel.get("service")
+	var result := await betting_service.place_bet(amount, choice)
 	if not result.success:
 		$CanvasLayer/BettingPanel/VBoxContainer/PlaceBet.disabled = false
 		_show_error(result.error)
@@ -945,7 +1588,8 @@ func _on_add_friend_pressed() -> void:
 	if username.is_empty():
 		$CanvasLayer/SocialPanel/VBoxContainer/Friends.text = "Enter a username first."
 		return
-	var result := await Scope.friends.send_request(username)
+	var social_service: SocialPanelService = $CanvasLayer/SocialPanel.get("service")
+	var result := await social_service.send_friend_request(username)
 	$CanvasLayer/SocialPanel/VBoxContainer/Friends.text = "Friend request sent to %s." % username if result.success else "Friend request failed: " + result.error
 	if result.success:
 		$CanvasLayer/SocialPanel/VBoxContainer/FriendActions/Username.text = ""
@@ -958,7 +1602,8 @@ func _on_send_message_pressed() -> void:
 	if recipient_id <= 0 or message_text.is_empty():
 		$CanvasLayer/SocialPanel/VBoxContainer/Messages.text = "Enter a numeric user ID and message."
 		return
-	var result := await Scope.messages.send(recipient_id, message_text)
+	var social_service: SocialPanelService = $CanvasLayer/SocialPanel.get("service")
+	var result := await social_service.send_message(recipient_id, message_text)
 	$CanvasLayer/SocialPanel/VBoxContainer/Messages.text = "Message sent." if result.success else "Message failed: " + result.error
 	if result.success:
 		$CanvasLayer/SocialPanel/VBoxContainer/MessageActions/Message.text = ""
@@ -966,21 +1611,26 @@ func _on_send_message_pressed() -> void:
 
 func _on_player_selected(user_id: int) -> void:
 	selected_player_id = user_id
+	$CanvasLayer/PlayerStatusFrame.clear_target()
 	$CanvasLayer/PlayerDetailsPanel.visible = true
 	$CanvasLayer/PlayerDetailsPanel/VBoxContainer/Username.text = "Loading player..."
 	$CanvasLayer/PlayerDetailsPanel/VBoxContainer/Gold.text = "Gold: loading"
 	$CanvasLayer/PlayerDetailsPanel/VBoxContainer/Online.text = "Status: loading"
 	$CanvasLayer/PlayerDetailsPanel/VBoxContainer/Status.text = ""
 	$CanvasLayer/PlayerDetailsPanel/VBoxContainer/Messages.text = "Loading messages..."
-	var profile_result := await Scope.wizards_wager.player_profile(user_id)
+	var details_service: PlayerDetailsPanelService = $CanvasLayer/PlayerDetailsPanel.get("service")
+	var profile_result := await details_service.profile(user_id)
 	if profile_result.success:
 		var profile: ScopeWizardsWagerPlayerProfile = profile_result.data
+		$CanvasLayer/PlayerStatusFrame.set_target_status(profile.username, profile.online, {})
 		$CanvasLayer/PlayerDetailsPanel/VBoxContainer/Username.text = profile.username
 		$CanvasLayer/PlayerDetailsPanel/VBoxContainer/Gold.text = "Gold: %d" % profile.gold
 		$CanvasLayer/PlayerDetailsPanel/VBoxContainer/Online.text = "Status: online" if profile.online else "Status: offline"
 	else:
 		$CanvasLayer/PlayerDetailsPanel/VBoxContainer/Status.text = "Profile unavailable: " + profile_result.error
-	var messages_result := await Scope.messages.list(user_id, 50)
+	var status_service: PlayerStatusService = $CanvasLayer/PlayerStatusFrame.get("service")
+	status_service.request_target_status(user_id)
+	var messages_result := await details_service.messages(user_id, 50)
 	if messages_result.success:
 		var messages: Array[ScopeMessage] = messages_result.data
 		var message_lines: Array[String] = []
@@ -994,7 +1644,8 @@ func _on_player_selected(user_id: int) -> void:
 func _on_profile_add_friend_pressed() -> void:
 	if selected_player_id <= 0:
 		return
-	var result := await Scope.friends.send_request($CanvasLayer/PlayerDetailsPanel/VBoxContainer/Username.text)
+	var details_service: PlayerDetailsPanelService = $CanvasLayer/PlayerDetailsPanel.get("service")
+	var result := await details_service.friends($CanvasLayer/PlayerDetailsPanel/VBoxContainer/Username.text)
 	$CanvasLayer/PlayerDetailsPanel/VBoxContainer/Status.text = "Friend request sent." if result.success else "Friend request failed: " + result.error
 
 
@@ -1002,7 +1653,8 @@ func _on_profile_send_message_pressed() -> void:
 	if selected_player_id <= 0:
 		return
 	var message_text: String = $CanvasLayer/PlayerDetailsPanel/VBoxContainer/Message.text.strip_edges()
-	var result := await Scope.messages.send(selected_player_id, message_text)
+	var details_service: PlayerDetailsPanelService = $CanvasLayer/PlayerDetailsPanel.get("service")
+	var result := await details_service.send_message(selected_player_id, message_text)
 	$CanvasLayer/PlayerDetailsPanel/VBoxContainer/Status.text = "Message sent." if result.success else "Message failed: " + result.error
 	if result.success:
 		$CanvasLayer/PlayerDetailsPanel/VBoxContainer/Message.text = ""
@@ -1012,6 +1664,34 @@ func _on_profile_send_message_pressed() -> void:
 func _close_player_details() -> void:
 	selected_player_id = 0
 	$CanvasLayer/PlayerDetailsPanel.visible = false
+	$CanvasLayer/PlayerStatusFrame.clear_target()
+
+
+func _handle_player_status_message(message: Dictionary) -> void:
+	var data_value: Variant = message.get("data", {})
+	if selected_player_id <= 0 or not data_value is Dictionary:
+		return
+	var data: Dictionary = data_value
+	if int(data.get("player_id", 0)) != selected_player_id:
+		return
+	$CanvasLayer/PlayerStatusFrame.set_target_status($CanvasLayer/PlayerDetailsPanel/VBoxContainer/Username.text, bool(data.get("online", false)), data)
+
+
+func _on_target_friend_requested() -> void:
+	_on_profile_add_friend_pressed()
+
+
+func _on_target_message_requested() -> void:
+	$CanvasLayer/PlayerDetailsPanel.visible = true
+	$CanvasLayer/PlayerDetailsPanel/VBoxContainer/Message.grab_focus()
+
+
+func _on_target_inspect_requested() -> void:
+	$CanvasLayer/PlayerDetailsPanel.visible = true
+
+
+func _on_target_cleared() -> void:
+	_close_player_details()
 
 
 func _on_logout_pressed() -> void:

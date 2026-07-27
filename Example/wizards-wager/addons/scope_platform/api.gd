@@ -5,6 +5,7 @@ var _http: HTTPRequest
 var _session: ScopeSession
 var _request_active: bool = false
 signal _request_released
+signal authentication_failed(status: int, message: String)
 
 
 func _init(http: HTTPRequest, session: ScopeSession) -> void:
@@ -165,6 +166,8 @@ func _request_unlocked(
 	var normalized_error := ScopeResponse.error_message(parsed, response_body)
 	if normalized_error.is_empty():
 		normalized_error = "HTTP request failed (%d)" % response_code
+	if response_code == 401 or response_code == 403:
+		authentication_failed.emit(response_code, normalized_error)
 	if ScopeConfig.debug_logging():
 		print("[Scope] error=%s" % normalized_error)
 
@@ -214,4 +217,7 @@ func _request_raw_unlocked(method: HTTPClient.Method, endpoint: String, content_
 		var error_json := JSON.new()
 		if error_json.parse(error_text) == OK:
 			parsed_error = error_json.data
-	return ScopeResponse.fail(response_code, ScopeResponse.error_message(parsed_error, error_text))
+	var normalized_error := ScopeResponse.error_message(parsed_error, error_text)
+	if response_code == 401 or response_code == 403:
+		authentication_failed.emit(response_code, normalized_error)
+	return ScopeResponse.fail(response_code, normalized_error)
