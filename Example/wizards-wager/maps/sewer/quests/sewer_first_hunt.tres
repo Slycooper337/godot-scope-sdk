@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="QuestDefinition" format=3 uid="uid://cabecu47cfny6"]
+
+[ext_resource type="Script" uid="uid://dl6r8dv0f0skn" path="res://map_authoring/quest_definition.gd" id="1_quest"]
+[ext_resource type="Script" uid="uid://h14c1mbftyl1" path="res://map_authoring/quest_stage.gd" id="2_stage"]
+
+[sub_resource type="Resource" id="zombie_stage"]
+script = ExtResource("2_stage")
+stage_id = "kill_sewer_zombies"
+required_count = 3
+
+[sub_resource type="Resource" id="return_stage"]
+script = ExtResource("2_stage")
+stage_id = "return_after_zombies"
+objective_type = "talk"
+target_archetype_id = ""
+target_npc_id = "sewer_guide"
+
+[resource]
+script = ExtResource("1_quest")
+quest_id = "sewer_first_hunt"
+giver_npc_id = "sewer_guide"
+title = "First Hunt"
+description = "Clear three zombies from the sewers, then report back."
+offer_text = "The dead keep crawling in through the lower tunnels. Put down three Zombies and come back alive."
+completion_text = "Good. You can handle yourself, but the deeper tunnels are worse."
+prerequisite_quest_ids = PackedStringArray()
+rewards = {
+"gold": 10,
+"xp": 20
+}
+stages = Array[ExtResource("2_stage")]([SubResource("zombie_stage"), SubResource("return_stage")])

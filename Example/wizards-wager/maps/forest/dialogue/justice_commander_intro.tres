@@ -1,0 +1,86 @@
+[gd_resource type="Resource" script_class="DialogueConversation" format=3 uid="uid://dh53gsv8obadb"]
+
+[ext_resource type="Script" uid="uid://dq18rt3pcxilx" path="res://map_authoring/dialogue_conversation.gd" id="1"]
+[ext_resource type="Script" uid="uid://cdddsns4y2o6p" path="res://map_authoring/dialogue_node.gd" id="2"]
+[ext_resource type="Script" uid="uid://ddqm4e7jr8mwp" path="res://map_authoring/dialogue_choice.gd" id="3"]
+[ext_resource type="Script" uid="uid://crm11c1h4kgqr" path="res://map_authoring/story_action.gd" id="4"]
+[ext_resource type="Script" uid="uid://crf8psc5r5wju" path="res://map_authoring/story_condition.gd" id="4_hl0ie"]
+
+[sub_resource type="Resource" id="set_met"]
+script = ExtResource("4")
+action_id = "set_commander_met"
+target_id = "justice_commander_met"
+
+[sub_resource type="Resource" id="set_duty"]
+script = ExtResource("4")
+action_id = "set_duty_response"
+target_id = "justice_oath_response"
+text_value = "duty"
+requires_confirmation = true
+
+[sub_resource type="Resource" id="play_intro_duty"]
+script = ExtResource("4")
+action_id = "play_justice_intro_duty"
+action_type = "start_cinematic"
+target_id = "justice_commander_audience"
+
+[sub_resource type="Resource" id="choice_duty"]
+script = ExtResource("3")
+choice_id = "justice_is_duty"
+text = "Justice means answering every wrong."
+destination_node_id = "duty_response"
+requires_confirmation = true
+actions = Array[ExtResource("4")]([SubResource("set_met"), SubResource("set_duty"), SubResource("play_intro_duty")])
+
+[sub_resource type="Resource" id="set_mercy"]
+script = ExtResource("4")
+action_id = "set_mercy_response"
+target_id = "justice_oath_response"
+text_value = "mercy"
+requires_confirmation = true
+
+[sub_resource type="Resource" id="play_intro_mercy"]
+script = ExtResource("4")
+action_id = "play_justice_intro_mercy"
+action_type = "start_cinematic"
+target_id = "justice_commander_audience"
+
+[sub_resource type="Resource" id="choice_mercy"]
+script = ExtResource("3")
+choice_id = "justice_needs_mercy"
+text = "Justice without mercy only creates another wrong."
+destination_node_id = "mercy_response"
+requires_confirmation = true
+actions = Array[ExtResource("4")]([SubResource("set_met"), SubResource("set_mercy"), SubResource("play_intro_mercy")])
+
+[sub_resource type="Resource" id="start"]
+script = ExtResource("2")
+node_id = "start"
+speaker_npc_id = "justice_commander"
+text = "You fought your way to this command post. Before I place soldiers under your banner, tell me: what does justice demand?"
+editor_position = Vector2(40, 80)
+choices = Array[ExtResource("3")]([SubResource("choice_duty"), SubResource("choice_mercy")])
+
+[sub_resource type="Resource" id="duty_response"]
+script = ExtResource("2")
+node_id = "duty_response"
+speaker_npc_id = "justice_commander"
+text = "Then carry the weight of every answer you demand. Welcome to the line."
+editor_position = Vector2(470, 20)
+ends_conversation = true
+
+[sub_resource type="Resource" id="mercy_response"]
+script = ExtResource("2")
+node_id = "mercy_response"
+speaker_npc_id = "justice_commander"
+text = "A dangerous answer in this army—and perhaps the one it most needs. Welcome to the line."
+editor_position = Vector2(470, 180)
+ends_conversation = true
+
+[resource]
+script = ExtResource("1")
+conversation_id = "justice_commander_intro"
+display_name = "Justice Commander Audience"
+owning_map_id = "forest"
+starting_node_id = "start"
+nodes = Array[ExtResource("2")]([SubResource("start"), SubResource("duty_response"), SubResource("mercy_response")])

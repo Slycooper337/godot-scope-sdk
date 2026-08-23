@@ -51,6 +51,10 @@ var snapshot_buffer: Array[Dictionary] = []
 var server_velocity := Vector2.ZERO
 var last_damage_attack_id := ""
 var death_tween: Tween = null
+var faction_id := "enemy"
+var relationship_to_player := "hostile"
+var attack_legal := true
+var reputation_effects: Dictionary = {}
 
 
 func _ready() -> void:
@@ -185,6 +189,24 @@ func get_server_mob_id() -> String:
 func apply_server_snapshot(data: Dictionary, snapshot_received_at: float = -1.0) -> void:
 	if not authoritative_mode:
 		return
+	faction_id = str(data.get("faction_id", faction_id))
+	relationship_to_player = str(data.get("relationship_to_player", data.get("relationship", relationship_to_player)))
+	attack_legal = bool(data.get("attack_legal", data.get("player_attack_legal", attack_legal)))
+	var reputation_value: Variant = data.get("reputation_effects", data.get("reputation_on_kill", {}))
+	if reputation_value is Dictionary:
+		reputation_effects = (reputation_value as Dictionary).duplicate(true)
+	show()
+	visual.show()
+	visual.modulate.a = 1.0
+	var incoming_state := str(data.get("state", "")).to_lower()
+	var incoming_alive := bool(data.get("alive", true))
+	var incoming_respawning := incoming_state in ["respawning", "spawned"]
+	if dying and (incoming_alive or incoming_respawning) and incoming_state not in ["dead", "death"]:
+		dying = false
+		body_collision.set_deferred("disabled", false)
+		enemy_collision.set_deferred("disabled", false)
+		server_position_initialized = false
+		snapshot_buffer.clear()
 	var position_data: Variant = data.get("position", {})
 	if position_data is Dictionary:
 		var position_dictionary: Dictionary = position_data

@@ -1,0 +1,835 @@
+[gd_scene format=3 uid="uid://dcmqgl7ki7pd1"]
+
+[ext_resource type="Script" uid="uid://eq0rx7t11ic2" path="res://maps/forest/forest_map.gd" id="1_root"]
+[ext_resource type="Script" uid="uid://dly5fxxy4dg0k" path="res://map_authoring/combatant_spawn_area.gd" id="2_spawn"]
+[ext_resource type="Resource" path="res://maps/forest/behaviors/forest_enemy_patrol.tres" id="3_enemy_behavior"]
+[ext_resource type="Resource" path="res://maps/forest/behaviors/justice_knight_battle.tres" id="4_justice_behavior"]
+[ext_resource type="Resource" path="res://maps/forest/behaviors/avenger_knight_battle.tres" id="5_avenger_behavior"]
+[ext_resource type="Script" uid="uid://h7i7o5irf3y6" path="res://map_authoring/map_physics_surface.gd" id="6_surface"]
+[ext_resource type="Script" uid="uid://4k2a30k035hp" path="res://map_authoring/area_transition.gd" id="11_area_transition"]
+[ext_resource type="Script" uid="uid://cxam6yrwqsf0s" path="res://map_authoring/quest_giver.gd" id="12_quest_giver"]
+[ext_resource type="Script" uid="uid://2qb2phgiqkoq" path="res://map_authoring/player_spawn.gd" id="13_player_spawn"]
+[ext_resource type="Script" uid="uid://bvpesjwryhy0o" path="res://map_authoring/quest_catalog.gd" id="14_quest_catalog"]
+[ext_resource type="Resource" uid="uid://8lsxae6eowka" path="res://maps/forest/quests/justice_report_to_commander.tres" id="15_justice_quest"]
+[ext_resource type="Resource" uid="uid://5fmgrb5ewljy" path="res://maps/forest/quests/avenger_report_to_commander.tres" id="16_avenger_quest"]
+[ext_resource type="Script" uid="uid://dl6r8dv0f0skn" path="res://map_authoring/quest_definition.gd" id="17_quest_definition"]
+[ext_resource type="Script" uid="uid://cpod1nottpg1o" path="res://map_authoring/dialogue_catalog.gd" id="18_dialogue_catalog"]
+[ext_resource type="Script" uid="uid://cw24bjcv5oqjg" path="res://map_authoring/story_flag_catalog.gd" id="19_flag_catalog"]
+[ext_resource type="Script" uid="uid://cysi86dtlrlh0" path="res://map_authoring/cinematic_catalog.gd" id="20_cinematic_catalog"]
+[ext_resource type="Script" uid="uid://heovytb1114a" path="res://map_authoring/cinematic_marker.gd" id="21_cinematic_marker"]
+[ext_resource type="Resource" uid="uid://cc0xou6pvq3bv" path="res://maps/forest/dialogue/justice_guard_neutral.tres" id="22_jg_neutral"]
+[ext_resource type="Resource" uid="uid://d27skmpqxd5vd" path="res://maps/forest/dialogue/justice_guard_allied.tres" id="23_jg_allied"]
+[ext_resource type="Resource" uid="uid://dnn03msyyjr0s" path="res://maps/forest/dialogue/justice_guard_allied_entry.tres" id="24_jg_entry"]
+[ext_resource type="Resource" uid="uid://cfbupxlg8p5xs" path="res://maps/forest/dialogue/avenger_guard_neutral.tres" id="25_ag_neutral"]
+[ext_resource type="Resource" uid="uid://b5rnw26hxqagw" path="res://maps/forest/dialogue/avenger_guard_allied.tres" id="26_ag_allied"]
+[ext_resource type="Resource" uid="uid://d2aydm7i3aojl" path="res://maps/forest/dialogue/avenger_guard_allied_entry.tres" id="27_ag_entry"]
+[ext_resource type="Resource" uid="uid://dh53gsv8obadb" path="res://maps/forest/dialogue/justice_commander_intro.tres" id="28_jc_intro"]
+[ext_resource type="Resource" uid="uid://cttyslu11twg8" path="res://maps/forest/dialogue/justice_commander_repeat.tres" id="29_jc_repeat"]
+[ext_resource type="Resource" uid="uid://cg7tkggl5a2w8" path="res://maps/forest/dialogue/justice_commander_intro_entry.tres" id="30_jc_entry"]
+[ext_resource type="Resource" uid="uid://bqp07pwp4jvhm" path="res://maps/forest/dialogue/avenger_commander_intro.tres" id="31_ac_intro"]
+[ext_resource type="Resource" uid="uid://drubondsmbhoe" path="res://maps/forest/dialogue/avenger_commander_repeat.tres" id="32_ac_repeat"]
+[ext_resource type="Resource" uid="uid://dlo60rgkxkyuh" path="res://maps/forest/dialogue/avenger_commander_intro_entry.tres" id="33_ac_entry"]
+[ext_resource type="Resource" path="res://maps/forest/dialogue/flags/justice_commander_met.tres" id="34_jc_met"]
+[ext_resource type="Resource" path="res://maps/forest/dialogue/flags/justice_oath_response.tres" id="35_j_response"]
+[ext_resource type="Resource" path="res://maps/forest/dialogue/flags/avenger_commander_met.tres" id="36_ac_met"]
+[ext_resource type="Resource" path="res://maps/forest/dialogue/flags/avenger_oath_response.tres" id="37_a_response"]
+[ext_resource type="Resource" uid="uid://d2nykicv8gknm" path="res://maps/forest/dialogue/cinematics/justice_commander_audience.tres" id="38_j_cinematic"]
+[ext_resource type="Resource" uid="uid://g32ot5ay482h" path="res://maps/forest/dialogue/cinematics/avenger_commander_audience.tres" id="39_a_cinematic"]
+[ext_resource type="Script" uid="uid://dq18rt3pcxilx" path="res://map_authoring/dialogue_conversation.gd" id="40_dialogue_type"]
+[ext_resource type="Script" uid="uid://ntsx2a1gc6es" path="res://map_authoring/story_flag_definition.gd" id="41_flag_type"]
+[ext_resource type="Script" uid="uid://bt2oe8b6oq2ai" path="res://map_authoring/cinematic_sequence.gd" id="42_cinematic_type"]
+[ext_resource type="Script" uid="uid://rbfjo4uu8rrs" path="res://map_authoring/conditional_conversation.gd" id="43_conditional_type"]
+[ext_resource type="Resource" uid="uid://c88fosfxh0m8b" path="res://maps/forest/dialogue/justice_commander_repeat_entry.tres" id="44_jc_repeat_entry"]
+[ext_resource type="Resource" uid="uid://dhsa74jmhj7pj" path="res://maps/forest/dialogue/avenger_commander_repeat_entry.tres" id="45_ac_repeat_entry"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_q6pfw"]
+size = Vector2(20384, 329)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_f55db"]
+size = Vector2(20513, 1672)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_12bk3"]
+size = Vector2(10114, 2262)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_g1fsy"]
+size = Vector2(10107.5, 2613)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_v5awb"]
+size = Vector2(1353.75, 1387.5)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_pvdmj"]
+size = Vector2(1353.75, 1387.5)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ljxjn"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_q1fh4"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_h84k8"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_uaw42"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_pjw72"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_iyos6"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_tpc7e"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_2bpuq"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_b3pgm"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_h7xhj"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hn8s0"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ho680"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_82uy2"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_an1eb"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_kwefj"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_4lovw"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_l6iux"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_uavy0"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_vw8gd"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_qhba4"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_opvav"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_s0yvr"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hn8nh"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_7a3n0"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_3s8kq"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_nx65i"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1f7wx"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_kf33d"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_c3rwm"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_qdkys"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_xuyyi"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_skckj"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_h374h"]
+size = Vector2(260, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hjs41"]
+size = Vector2(1011, 7)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_nn5pl"]
+size = Vector2(8912, 7)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_sryjy"]
+size = Vector2(8912, 7)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_eu7bm"]
+size = Vector2(8912, 7)
+
+[node name="ForestMap" type="Node2D" unique_id=647550900]
+script = ExtResource("1_root")
+display_name = "Forest Warfront"
+area_type = "main_war"
+enterable = true
+published_version = 6
+archetype_ids = PackedStringArray("zombie", "goblin", "skeleton", "justice_knight", "avenger_knight", "npc")
+faction_ids = PackedStringArray("player", "enemy", "justice", "avenger", "neutral")
+
+[node name="Visuals" type="Node2D" parent="." unique_id=1981449720]
+
+[node name="Quests" type="Node" parent="." unique_id=1919226468]
+
+[node name="QuestCatalog" type="Node" parent="Quests" unique_id=1920491976]
+script = ExtResource("14_quest_catalog")
+quests = Array[ExtResource("17_quest_definition")]([ExtResource("15_justice_quest"), ExtResource("16_avenger_quest")])
+
+[node name="PhysicsSurfaces" type="Node2D" parent="." unique_id=641365214]
+
+[node name="ground_main" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=437590335]
+position = Vector2(7310, 678.5)
+script = ExtResource("6_surface")
+surface_id = "ground_main"
+surface_role = "floor"
+size = Vector2(20384, 329)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/ground_main" unique_id=712075460]
+shape = SubResource("RectangleShape2D_q6pfw")
+
+[node name="ground_upper" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=2050236594]
+position = Vector2(6044.5, -757)
+script = ExtResource("6_surface")
+surface_id = "ground_upper"
+size = Vector2(20513, 1672)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/ground_upper" unique_id=2145135626]
+position = Vector2(0, -19)
+shape = SubResource("RectangleShape2D_f55db")
+
+[node name="ground_upper_2" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=1988027603]
+position = Vector2(12401, -2867)
+script = ExtResource("6_surface")
+surface_id = "ground_upper_2"
+size = Vector2(10114, 2262)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/ground_upper_2" unique_id=1350458310]
+shape = SubResource("RectangleShape2D_12bk3")
+
+[node name="ground_upper_3" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=623577312]
+position = Vector2(1452.25, -2691)
+script = ExtResource("6_surface")
+surface_id = "ground_upper_3"
+size = Vector2(10107.5, 2613)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/ground_upper_3" unique_id=1370752784]
+shape = SubResource("RectangleShape2D_g1fsy")
+
+[node name="ground_upper_4" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=896534251]
+position = Vector2(-1902.875, -4557)
+script = ExtResource("6_surface")
+surface_id = "ground_upper_4"
+size = Vector2(1353.75, 1387.5)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/ground_upper_4" unique_id=444583634]
+shape = SubResource("RectangleShape2D_v5awb")
+
+[node name="ground_upper_5" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=628920055]
+position = Vector2(16585.125, -4609)
+script = ExtResource("6_surface")
+surface_id = "ground_upper_5"
+size = Vector2(1353.75, 1387.5)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/ground_upper_5" unique_id=331382587]
+shape = SubResource("RectangleShape2D_pvdmj")
+
+[node name="platform_01" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=842630253]
+position = Vector2(608, 390)
+script = ExtResource("6_surface")
+surface_id = "platform_01"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_01" unique_id=1956448129]
+shape = SubResource("RectangleShape2D_ljxjn")
+one_way_collision = true
+
+[node name="platform_02" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=732977042]
+position = Vector2(923, 191)
+script = ExtResource("6_surface")
+surface_id = "platform_02"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_02" unique_id=57222189]
+shape = SubResource("RectangleShape2D_q1fh4")
+one_way_collision = true
+
+[node name="platform_03" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=591372543]
+position = Vector2(1264, 334)
+script = ExtResource("6_surface")
+surface_id = "platform_03"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_03" unique_id=1904556689]
+shape = SubResource("RectangleShape2D_h84k8")
+one_way_collision = true
+
+[node name="platform_04" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=115446676]
+position = Vector2(17186, 334)
+script = ExtResource("6_surface")
+surface_id = "platform_04"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_04" unique_id=1319069570]
+shape = SubResource("RectangleShape2D_uaw42")
+one_way_collision = true
+
+[node name="platform_05" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=45006896]
+position = Vector2(16782, 173)
+script = ExtResource("6_surface")
+surface_id = "platform_05"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_05" unique_id=283964871]
+shape = SubResource("RectangleShape2D_pjw72")
+one_way_collision = true
+
+[node name="platform_06" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=114999080]
+position = Vector2(17088, -89)
+script = ExtResource("6_surface")
+surface_id = "platform_06"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_06" unique_id=1875611012]
+shape = SubResource("RectangleShape2D_iyos6")
+one_way_collision = true
+
+[node name="platform_07" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=1270881289]
+position = Vector2(16549, -142)
+script = ExtResource("6_surface")
+surface_id = "platform_07"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_07" unique_id=1370014541]
+shape = SubResource("RectangleShape2D_tpc7e")
+one_way_collision = true
+
+[node name="platform_08" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=1323282740]
+position = Vector2(16257, -358)
+script = ExtResource("6_surface")
+surface_id = "platform_08"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_08" unique_id=486733754]
+shape = SubResource("RectangleShape2D_2bpuq")
+one_way_collision = true
+
+[node name="platform_09" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=1873240909]
+position = Vector2(16747, -480)
+script = ExtResource("6_surface")
+surface_id = "platform_09"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_09" unique_id=1821933104]
+shape = SubResource("RectangleShape2D_b3pgm")
+one_way_collision = true
+
+[node name="platform_10" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=306909231]
+position = Vector2(17206, -590)
+script = ExtResource("6_surface")
+surface_id = "platform_10"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_10" unique_id=962873601]
+shape = SubResource("RectangleShape2D_h7xhj")
+one_way_collision = true
+
+[node name="platform_11" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=210239637]
+position = Vector2(16853, -685)
+script = ExtResource("6_surface")
+surface_id = "platform_11"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_11" unique_id=1341036587]
+shape = SubResource("RectangleShape2D_hn8s0")
+one_way_collision = true
+
+[node name="platform_12" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=264237177]
+position = Vector2(17210, -893)
+script = ExtResource("6_surface")
+surface_id = "platform_12"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_12" unique_id=619091726]
+shape = SubResource("RectangleShape2D_ho680")
+one_way_collision = true
+
+[node name="platform_13" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=230475560]
+position = Vector2(16902, -1064)
+script = ExtResource("6_surface")
+surface_id = "platform_13"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_13" unique_id=2032270162]
+shape = SubResource("RectangleShape2D_82uy2")
+one_way_collision = true
+
+[node name="platform_14" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=964314604]
+position = Vector2(17204, -1255)
+script = ExtResource("6_surface")
+surface_id = "platform_14"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_14" unique_id=2019433783]
+shape = SubResource("RectangleShape2D_an1eb")
+one_way_collision = true
+
+[node name="platform_15" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=349409155]
+position = Vector2(16636, -1305)
+script = ExtResource("6_surface")
+surface_id = "platform_15"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_15" unique_id=231548596]
+shape = SubResource("RectangleShape2D_kwefj")
+one_way_collision = true
+
+[node name="platform_16" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=640834213]
+position = Vector2(17057, -1456)
+script = ExtResource("6_surface")
+surface_id = "platform_16"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_16" unique_id=1058460671]
+shape = SubResource("RectangleShape2D_4lovw")
+one_way_collision = true
+
+[node name="platform_17" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=1694666663]
+position = Vector2(16836, -1580)
+script = ExtResource("6_surface")
+surface_id = "platform_17"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_17" unique_id=2065679707]
+shape = SubResource("RectangleShape2D_l6iux")
+one_way_collision = true
+
+[node name="platform_18" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=1852610117]
+position = Vector2(-9272, -1845)
+script = ExtResource("6_surface")
+surface_id = "platform_18"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_18" unique_id=1740438545]
+shape = SubResource("RectangleShape2D_uavy0")
+one_way_collision = true
+
+[node name="platform_19" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=1926172771]
+position = Vector2(-8957, -2044)
+script = ExtResource("6_surface")
+surface_id = "platform_19"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_19" unique_id=493445986]
+shape = SubResource("RectangleShape2D_vw8gd")
+one_way_collision = true
+
+[node name="platform_20" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=731308114]
+position = Vector2(-8616, -1901)
+script = ExtResource("6_surface")
+surface_id = "platform_20"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_20" unique_id=290657083]
+shape = SubResource("RectangleShape2D_qhba4")
+one_way_collision = true
+
+[node name="platform_21" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=1763312429]
+position = Vector2(7306, -1901)
+script = ExtResource("6_surface")
+surface_id = "platform_21"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_21" unique_id=499077859]
+shape = SubResource("RectangleShape2D_opvav")
+one_way_collision = true
+
+[node name="platform_22" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=688599573]
+position = Vector2(6902, -2062)
+script = ExtResource("6_surface")
+surface_id = "platform_22"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_22" unique_id=2087276526]
+shape = SubResource("RectangleShape2D_s0yvr")
+one_way_collision = true
+
+[node name="platform_23" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=1970403547]
+position = Vector2(7208, -2324)
+script = ExtResource("6_surface")
+surface_id = "platform_23"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_23" unique_id=475970901]
+shape = SubResource("RectangleShape2D_hn8nh")
+one_way_collision = true
+
+[node name="platform_24" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=1087172663]
+position = Vector2(6669, -2377)
+script = ExtResource("6_surface")
+surface_id = "platform_24"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_24" unique_id=873073560]
+shape = SubResource("RectangleShape2D_7a3n0")
+one_way_collision = true
+
+[node name="platform_25" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=676935772]
+position = Vector2(6377, -2593)
+script = ExtResource("6_surface")
+surface_id = "platform_25"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_25" unique_id=575573003]
+shape = SubResource("RectangleShape2D_3s8kq")
+one_way_collision = true
+
+[node name="platform_26" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=982405320]
+position = Vector2(6867, -2715)
+script = ExtResource("6_surface")
+surface_id = "platform_26"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_26" unique_id=396744246]
+shape = SubResource("RectangleShape2D_nx65i")
+one_way_collision = true
+
+[node name="platform_27" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=573380868]
+position = Vector2(7326, -2825)
+script = ExtResource("6_surface")
+surface_id = "platform_27"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_27" unique_id=604081814]
+shape = SubResource("RectangleShape2D_1f7wx")
+one_way_collision = true
+
+[node name="platform_28" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=619012748]
+position = Vector2(6973, -2920)
+script = ExtResource("6_surface")
+surface_id = "platform_28"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_28" unique_id=1861215131]
+shape = SubResource("RectangleShape2D_kf33d")
+one_way_collision = true
+
+[node name="platform_29" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=2074195498]
+position = Vector2(7330, -3128)
+script = ExtResource("6_surface")
+surface_id = "platform_29"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_29" unique_id=384524358]
+shape = SubResource("RectangleShape2D_c3rwm")
+one_way_collision = true
+
+[node name="platform_30" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=2098072709]
+position = Vector2(7022, -3299)
+script = ExtResource("6_surface")
+surface_id = "platform_30"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_30" unique_id=482849667]
+shape = SubResource("RectangleShape2D_qdkys")
+one_way_collision = true
+
+[node name="platform_31" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=1550013969]
+position = Vector2(7324, -3490)
+script = ExtResource("6_surface")
+surface_id = "platform_31"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_31" unique_id=473886953]
+shape = SubResource("RectangleShape2D_xuyyi")
+one_way_collision = true
+
+[node name="platform_32" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=152596159]
+position = Vector2(6756, -3540)
+script = ExtResource("6_surface")
+surface_id = "platform_32"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_32" unique_id=92883828]
+shape = SubResource("RectangleShape2D_skckj")
+one_way_collision = true
+
+[node name="platform_33" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=514459076]
+position = Vector2(7177, -3691)
+script = ExtResource("6_surface")
+surface_id = "platform_33"
+size = Vector2(260, 16)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_33" unique_id=877232892]
+shape = SubResource("RectangleShape2D_h374h")
+one_way_collision = true
+
+[node name="platform_34" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=528688197]
+position = Vector2(6956, -3982)
+script = ExtResource("6_surface")
+surface_id = "platform_34"
+size = Vector2(1011, 7)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/platform_34" unique_id=942002760]
+shape = SubResource("RectangleShape2D_hjs41")
+one_way_collision = true
+
+[node name="ground_3" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=605247816]
+position = Vector2(11821, -1636)
+script = ExtResource("6_surface")
+surface_id = "ground_3"
+surface_role = "floor"
+size = Vector2(8912, 7)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/ground_3" unique_id=1701844921]
+shape = SubResource("RectangleShape2D_nn5pl")
+
+[node name="justice_ground" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=1115264457]
+position = Vector2(9743, -3999)
+script = ExtResource("6_surface")
+surface_id = "justice_ground"
+surface_role = "floor"
+size = Vector2(8912, 7)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/justice_ground" unique_id=588690568]
+shape = SubResource("RectangleShape2D_sryjy")
+one_way_collision = true
+
+[node name="avenger_ground" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=1127010902]
+position = Vector2(3382, -3999)
+script = ExtResource("6_surface")
+surface_id = "avenger_ground"
+surface_role = "floor"
+size = Vector2(8912, 7)
+one_way = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/avenger_ground" unique_id=357478436]
+shape = SubResource("RectangleShape2D_eu7bm")
+one_way_collision = true
+
+[node name="EnemySpawns" type="Node2D" parent="." unique_id=746421818]
+
+[node name="EnemySpawnsArea1" type="Node2D" parent="EnemySpawns" unique_id=1819509369]
+position = Vector2(2220, 290)
+script = ExtResource("2_spawn")
+spawn_id = "enemy_spawn_area_1"
+visual_id = "zombie"
+faction_id = "enemy"
+placement_mode = 1
+bounds = Vector2(2109.5, 336)
+behavior_profile_id = "forest_enemy_patrol"
+behavior_profile = ExtResource("3_enemy_behavior")
+surface_id = "ground_main"
+hostile_factions = PackedStringArray()
+hostile_archetypes = PackedStringArray()
+
+[node name="EnemySpawnsArea2" type="Node2D" parent="EnemySpawns" unique_id=349631315]
+position = Vector2(10283, 453)
+script = ExtResource("2_spawn")
+spawn_id = "enemy_spawn_area_2"
+archetype_id = "goblin"
+visual_id = "goblin"
+faction_id = "enemy"
+placement_mode = 1
+bounds = Vector2(12591, 90)
+behavior_profile_id = "forest_enemy_patrol"
+behavior_profile = ExtResource("3_enemy_behavior")
+surface_id = "ground_main"
+hostile_factions = PackedStringArray()
+hostile_archetypes = PackedStringArray()
+
+[node name="EnemySpawnsArea3" type="Node2D" parent="EnemySpawns" unique_id=13366586]
+position = Vector2(11821, -1675)
+script = ExtResource("2_spawn")
+spawn_id = "enemy_spawn_area_3"
+archetype_id = "skeleton"
+visual_id = "skeleton"
+faction_id = "enemy"
+spawn_count = 20
+placement_mode = 1
+bounds = Vector2(8912, 78)
+behavior_profile_id = "forest_enemy_patrol"
+behavior_profile = ExtResource("3_enemy_behavior")
+surface_id = "ground_3"
+hostile_factions = PackedStringArray()
+hostile_archetypes = PackedStringArray()
+
+[node name="NPCSpawns" type="Node2D" parent="." unique_id=1428954615]
+
+[node name="JusticeStartingGuard" type="Node2D" parent="NPCSpawns" unique_id=1428954619]
+position = Vector2(8500, -4038)
+script = ExtResource("12_quest_giver")
+npc_id = "justice_starting_guard"
+display_name = "Justice Guard"
+faction_id = "justice"
+default_conversation_id = "justice_guard_neutral"
+conditional_conversations = Array[ExtResource("43_conditional_type")]([ExtResource("24_jg_entry")])
+ambient_lines = PackedStringArray()
+surface_id = "justice_ground"
+quest_ids = PackedStringArray("justice_report_to_commander")
+
+[node name="JusticeCommander" type="Node2D" parent="NPCSpawns" unique_id=1428954620]
+position = Vector2(11000, -4038)
+script = ExtResource("12_quest_giver")
+npc_id = "justice_commander"
+display_name = "Justice Commander"
+faction_id = "justice"
+conditional_conversations = Array[ExtResource("43_conditional_type")]([ExtResource("30_jc_entry"), ExtResource("44_jc_repeat_entry")])
+ambient_lines = PackedStringArray()
+surface_id = "justice_ground"
+quest_ids = PackedStringArray()
+
+[node name="AvengerStartingGuard" type="Node2D" parent="NPCSpawns" unique_id=1428954621]
+position = Vector2(4200, -4038)
+script = ExtResource("12_quest_giver")
+npc_id = "avenger_starting_guard"
+display_name = "Avenger Guard"
+faction_id = "avenger"
+default_conversation_id = "avenger_guard_neutral"
+conditional_conversations = Array[ExtResource("43_conditional_type")]([ExtResource("27_ag_entry")])
+ambient_lines = PackedStringArray()
+surface_id = "avenger_ground"
+quest_ids = PackedStringArray("avenger_report_to_commander")
+
+[node name="AvengerCommander" type="Node2D" parent="NPCSpawns" unique_id=1428954622]
+position = Vector2(2500, -4038)
+script = ExtResource("12_quest_giver")
+npc_id = "avenger_commander"
+display_name = "Avenger Commander"
+faction_id = "avenger"
+conditional_conversations = Array[ExtResource("43_conditional_type")]([ExtResource("33_ac_entry"), ExtResource("45_ac_repeat_entry")])
+ambient_lines = PackedStringArray()
+surface_id = "avenger_ground"
+quest_ids = PackedStringArray()
+
+[node name="JusticeKnightsSpawn" type="Node2D" parent="NPCSpawns" unique_id=447370225]
+position = Vector2(9743, -4038)
+script = ExtResource("2_spawn")
+spawn_id = "justice_knights_spawn"
+archetype_id = "justice_knight"
+visual_id = "justice_knight"
+faction_id = "justice"
+placement_mode = 1
+bounds = Vector2(8912, 78)
+behavior_profile_id = "justice_knight_battle"
+behavior_profile = ExtResource("4_justice_behavior")
+surface_id = "justice_ground"
+respawn_delay_seconds = 8
+hostile_factions = PackedStringArray()
+hostile_archetypes = PackedStringArray()
+
+[node name="AvengerKnightsSpawn" type="Node2D" parent="NPCSpawns" unique_id=1498103282]
+position = Vector2(3382, -4038)
+script = ExtResource("2_spawn")
+spawn_id = "avenger_knights_spawn"
+archetype_id = "avenger_knight"
+visual_id = "avenger_knight"
+faction_id = "avenger"
+placement_mode = 1
+bounds = Vector2(8912, 78)
+behavior_profile_id = "avenger_knight_battle"
+behavior_profile = ExtResource("5_avenger_behavior")
+surface_id = "avenger_ground"
+respawn_delay_seconds = 8
+hostile_factions = PackedStringArray()
+hostile_archetypes = PackedStringArray()
+
+[node name="Transitions" type="Node2D" parent="." unique_id=1779921052]
+
+[node name="QuestAreas" type="Node2D" parent="." unique_id=253631610]
+
+[node name="Interactables" type="Node2D" parent="." unique_id=2122635361]
+
+[node name="CinematicMarkers" type="Node2D" parent="." unique_id=1273203146]
+
+[node name="JusticeCommandView" type="Node2D" parent="CinematicMarkers" unique_id=1886314293]
+position = Vector2(10100, -4038)
+script = ExtResource("21_cinematic_marker")
+marker_id = "justice_command_view"
+display_name = "Justice Command View"
+camera_zoom = Vector2(0.85, 0.85)
+
+[node name="AvengerCommandView" type="Node2D" parent="CinematicMarkers" unique_id=1568047425]
+position = Vector2(3400, -4038)
+script = ExtResource("21_cinematic_marker")
+marker_id = "avenger_command_view"
+display_name = "Avenger Command View"
+camera_zoom = Vector2(0.85, 0.85)
+
+[node name="Storytelling" type="Node" parent="." unique_id=282925209]
+
+[node name="DialogueCatalog" type="Node" parent="Storytelling" unique_id=492369833]
+script = ExtResource("18_dialogue_catalog")
+conversations = Array[ExtResource("40_dialogue_type")]([ExtResource("22_jg_neutral"), ExtResource("23_jg_allied"), ExtResource("25_ag_neutral"), ExtResource("26_ag_allied"), ExtResource("28_jc_intro"), ExtResource("29_jc_repeat"), ExtResource("31_ac_intro"), ExtResource("32_ac_repeat")])
+
+[node name="StoryFlagCatalog" type="Node" parent="Storytelling" unique_id=1649055123]
+script = ExtResource("19_flag_catalog")
+flags = Array[ExtResource("41_flag_type")]([ExtResource("34_jc_met"), ExtResource("35_j_response"), ExtResource("36_ac_met"), ExtResource("37_a_response")])
+
+[node name="CinematicCatalog" type="Node" parent="Storytelling" unique_id=1041469137]
+script = ExtResource("20_cinematic_catalog")
+sequences = Array[ExtResource("42_cinematic_type")]([ExtResource("38_j_cinematic"), ExtResource("39_a_cinematic")])
+
+[node name="ForestEntranceToSewer" type="Area2D" parent="." unique_id=1428954617]
+position = Vector2(500, 435)
+script = ExtResource("11_area_transition")
+transition_id = "forest_entrance_to_sewer"
+display_name = "Return to the Sewers"
+destination_map_id = "sewer"
+destination_spawn_id = "sewer_return"
+required_player_state = PackedStringArray("alive", "not_transition_locked")
+
+[node name="CentralBattleSpawn" type="Node2D" parent="." unique_id=1428954618]
+position = Vector2(7000, -4038)
+script = ExtResource("13_player_spawn")
+spawn_id = "central_battle_spawn"
+surface_id = "justice_ground"
+
+[node name="PlayerSpawns" type="Node2D" parent="." unique_id=563881715]

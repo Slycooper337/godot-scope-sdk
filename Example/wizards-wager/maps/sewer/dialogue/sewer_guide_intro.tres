@@ -1,0 +1,75 @@
+[gd_resource type="Resource" script_class="DialogueConversation" format=3 uid="uid://b50x4l36fn8bx"]
+
+[ext_resource type="Script" uid="uid://dq18rt3pcxilx" path="res://map_authoring/dialogue_conversation.gd" id="1_conversation"]
+[ext_resource type="Script" uid="uid://cdddsns4y2o6p" path="res://map_authoring/dialogue_node.gd" id="2_node"]
+[ext_resource type="Script" uid="uid://ddqm4e7jr8mwp" path="res://map_authoring/dialogue_choice.gd" id="3_choice"]
+[ext_resource type="Script" uid="uid://crf8psc5r5wju" path="res://map_authoring/story_condition.gd" id="4_0axe6"]
+[ext_resource type="Script" uid="uid://crm11c1h4kgqr" path="res://map_authoring/story_action.gd" id="4_action"]
+
+[sub_resource type="Resource" id="choice_ask"]
+script = ExtResource("3_choice")
+choice_id = "ask_about_war"
+text = "What is happening on the surface?"
+destination_node_id = "war_explanation"
+
+[sub_resource type="Resource" id="action_met"]
+script = ExtResource("4_action")
+action_id = "remember_meeting"
+target_id = "met_sewer_guide"
+
+[sub_resource type="Resource" id="action_offer"]
+script = ExtResource("4_action")
+action_id = "offer_first_hunt"
+action_type = "offer_quest"
+target_id = "sewer_first_hunt"
+
+[sub_resource type="Resource" id="choice_ready"]
+script = ExtResource("3_choice")
+choice_id = "ready_to_help"
+text = "I can handle myself. What needs killing?"
+destination_node_id = "first_task"
+actions = Array[ExtResource("4_action")]([SubResource("action_met"), SubResource("action_offer")])
+
+[sub_resource type="Resource" id="start_node"]
+script = ExtResource("2_node")
+node_id = "start"
+speaker_npc_id = "sewer_guide"
+text = "Easy now. The tunnels are crawling, and the war above is worse. You have questions, but first you need to survive."
+editor_position = Vector2(40, 80)
+choices = Array[ExtResource("3_choice")]([SubResource("choice_ask"), SubResource("choice_ready")])
+
+[sub_resource type="Resource" id="action_learned"]
+script = ExtResource("4_action")
+action_id = "remember_war_explanation"
+target_id = "learned_about_endless_war"
+
+[sub_resource type="Resource" id="choice_understand"]
+script = ExtResource("3_choice")
+choice_id = "understand_war"
+text = "Justice and vengeance feeding each other forever. I understand."
+destination_node_id = "first_task"
+actions = Array[ExtResource("4_action")]([SubResource("action_learned"), SubResource("action_met"), SubResource("action_offer")])
+
+[sub_resource type="Resource" id="war_node"]
+script = ExtResource("2_node")
+node_id = "war_explanation"
+speaker_npc_id = "sewer_guide"
+text = "The Justice Knights kill to answer every fallen soldier. The Avenger Knights kill for the same reason and call it vengeance. Every answer creates another death to answer."
+editor_position = Vector2(360, 20)
+choices = Array[ExtResource("3_choice")]([SubResource("choice_understand")])
+
+[sub_resource type="Resource" id="task_node"]
+script = ExtResource("2_node")
+node_id = "first_task"
+speaker_npc_id = "sewer_guide"
+text = "Start with the dead wandering these tunnels. Put down three Zombies, then come back to me."
+editor_position = Vector2(700, 100)
+ends_conversation = true
+
+[resource]
+script = ExtResource("1_conversation")
+conversation_id = "sewer_guide_intro"
+display_name = "Sewer Guide Introduction"
+owning_map_id = "sewer"
+starting_node_id = "start"
+nodes = Array[ExtResource("2_node")]([SubResource("start_node"), SubResource("war_node"), SubResource("task_node")])

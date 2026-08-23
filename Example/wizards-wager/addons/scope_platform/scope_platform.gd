@@ -1,3 +1,4 @@
+@tool
 class_name ScopePlatform
 extends Node
 
@@ -16,6 +17,7 @@ var messages: ScopeMessages
 var achievements: ScopeAchievements
 var analytics: ScopeAnalytics
 var realtime: ScopeRealtime
+var maps: ScopeMaps
 var initialized: bool = false
 
 
@@ -41,6 +43,7 @@ func initialize() -> ScopeResponse:
 		achievements = ScopeAchievements.new(api)
 		analytics = ScopeAnalytics.new(api)
 		realtime = ScopeRealtime.new(api)
+		maps = ScopeMaps.new(api)
 		realtime.authentication_failed.connect(_on_realtime_authentication_failed)
 
 	if session.restore():

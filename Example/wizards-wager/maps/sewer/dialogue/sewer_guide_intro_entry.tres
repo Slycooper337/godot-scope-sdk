@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ConditionalConversation" format=3 uid="uid://bwqo2quapal16"]
+
+[ext_resource type="Script" uid="uid://rbfjo4uu8rrs" path="res://map_authoring/conditional_conversation.gd" id="1_entry"]
+[ext_resource type="Script" uid="uid://crf8psc5r5wju" path="res://map_authoring/story_condition.gd" id="2_condition"]
+
+[sub_resource type="Resource" id="not_met"]
+script = ExtResource("2_condition")
+condition_id = "not_met_guide"
+condition_type = "flag_is_not_set"
+target_id = "met_sewer_guide"
+
+[resource]
+script = ExtResource("1_entry")
+entry_id = "sewer_guide_first_meeting"
+conversation_id = "sewer_guide_intro"
+priority = 100
+one_time = true
+conditions = Array[ExtResource("2_condition")]([SubResource("not_met")])

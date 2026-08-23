@@ -5,10 +5,7 @@ extends CharacterBody2D
 # as the player, under the dedicated npc_* animation names.
 const MOB_FOOT_OFFSET_Y := 78.35
 const FRAME_SIZE := Vector2(36.0, 36.0)
-const VISUAL_SHEETS := {
-	"justice_knight": "res://assets/NPCSHEETS/JusticeKnight.png",
-	"avenger_knight": "res://assets/NPCSHEETS/AvengerKnight.png"
-}
+const CHARACTER_SHEET_DIRECTORY := "res://assets/NPCSHEETS"
 const ANIMATION_ROWS := {
 	"npc_walk": {"y": 0, "frames": 6, "loop": true},
 	"npc_idle": {"y": 36, "frames": 6, "loop": true},
@@ -37,6 +34,10 @@ var snapshot_buffer: Array[Dictionary] = []
 var server_velocity := Vector2.ZERO
 var last_damage_health := -1
 var last_damage_attack_id := ""
+var faction_id := "neutral"
+var relationship_to_player := "neutral"
+var attack_legal := false
+var reputation_effects: Dictionary = {}
 var death_tween: Tween = null
 
 
@@ -83,7 +84,7 @@ func get_server_mob_id() -> String:
 func set_visual_id(incoming_visual_id: String) -> void:
 	if incoming_visual_id.is_empty() or incoming_visual_id == visual_id:
 		return
-	var sheet_path := str(VISUAL_SHEETS.get(incoming_visual_id, ""))
+	var sheet_path := _resolve_visual_sheet_path(incoming_visual_id)
 	if sheet_path.is_empty():
 		push_warning("[NPC] Unknown visual_id=%s for %s" % [incoming_visual_id, server_mob_id])
 		return
@@ -96,7 +97,35 @@ func set_visual_id(incoming_visual_id: String) -> void:
 	visual.play(&"npc_idle")
 
 
+func _resolve_visual_sheet_path(incoming_visual_id: String) -> String:
+	var normalized_id := incoming_visual_id.to_snake_case()
+	for file_name in DirAccess.get_files_at(CHARACTER_SHEET_DIRECTORY):
+		if not file_name.to_lower().ends_with(".png"):
+			continue
+		if file_name.get_basename().to_snake_case() == normalized_id:
+			return CHARACTER_SHEET_DIRECTORY.path_join(file_name)
+	return ""
+
+
 func apply_server_snapshot(data: Dictionary, snapshot_received_at: float = -1.0) -> void:
+	faction_id = str(data.get("faction_id", faction_id))
+	relationship_to_player = str(data.get("relationship_to_player", data.get("relationship", relationship_to_player)))
+	attack_legal = bool(data.get("attack_legal", data.get("player_attack_legal", attack_legal)))
+	var reputation_value: Variant = data.get("reputation_effects", data.get("reputation_on_kill", {}))
+	if reputation_value is Dictionary:
+		reputation_effects = (reputation_value as Dictionary).duplicate(true)
+	show()
+	visual.show()
+	visual.modulate.a = 1.0
+	var incoming_state := str(data.get("state", "")).to_lower()
+	var incoming_alive := bool(data.get("alive", true))
+	var incoming_respawning := incoming_state in ["respawning", "spawned"]
+	if dying and (incoming_alive or incoming_respawning) and incoming_state not in ["dead", "death"]:
+		dying = false
+		body_collision.set_deferred("disabled", false)
+		enemy_collision.set_deferred("disabled", false)
+		server_position_initialized = false
+		snapshot_buffer.clear()
 	set_visual_id(str(data.get("visual_id", data.get("mob_type", ""))).to_lower())
 	var position_value: Variant = data.get("position", {})
 	if position_value is Dictionary:

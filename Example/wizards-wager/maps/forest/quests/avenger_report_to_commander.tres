@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="QuestDefinition" format=3 uid="uid://5fmgrb5ewljy"]
+
+[ext_resource type="Script" uid="uid://dl6r8dv0f0skn" path="res://map_authoring/quest_definition.gd" id="1"]
+[ext_resource type="Script" uid="uid://h14c1mbftyl1" path="res://map_authoring/quest_stage.gd" id="2"]
+
+[sub_resource type="Resource" id="guard_stage"]
+script = ExtResource("2")
+stage_id = "speak_to_avenger_guard"
+objective_type = "talk"
+target_npc_id = "avenger_starting_guard"
+
+[sub_resource type="Resource" id="commander_stage"]
+script = ExtResource("2")
+stage_id = "talk_to_avenger_commander"
+objective_type = "talk"
+target_npc_id = "avenger_commander"
+
+[resource]
+script = ExtResource("1")
+quest_id = "avenger_report_to_commander"
+giver_npc_id = "avenger_starting_guard"
+title = "Report to Avenger"
+description = "Report to the Avenger commander."
+offer_text = "The commander knows what you did for our fallen. Report to the Avenger warfront command post."
+completion_text = "You answered blood with vengeance. Now show us you have the strength to endure the war."
+prerequisite_quest_ids = PackedStringArray("sewer_find_exit")
+required_committed_faction_id = "avenger"
+rewards = {
+"avenger_reputation": 10,
+"gold": 25,
+"xp": 50
+}
+stages = Array[ExtResource("2")]([SubResource("guard_stage"), SubResource("commander_stage")])

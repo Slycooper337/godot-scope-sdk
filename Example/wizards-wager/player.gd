@@ -38,6 +38,7 @@ signal game_over_finished
 
 var attacking = false
 var facing_direction := 1.0
+var story_input_locked := false
 var camera_rest_position := Vector2.ZERO
 var drop_through_timer := 0.0
 var attack_direction := 1.0
@@ -98,10 +99,10 @@ func _physics_process(delta: float) -> void:
 		if drop_through_timer <= 0.0:
 			body_collision.set_deferred("disabled", false)
 
-	if not stunned and not attacking and not powering_up and not is_powered_up() and Input.is_action_just_pressed("power_up") and current_mana >= power_up_mana_cost:
+	if not story_input_locked and not stunned and not attacking and not powering_up and not is_powered_up() and Input.is_action_just_pressed("power_up") and current_mana >= power_up_mana_cost:
 		_start_power_up()
 
-	if not stunned and not powering_up and Input.is_action_just_pressed("attack") and not attacking and current_stamina >= attack_stamina_cost:
+	if not story_input_locked and not stunned and not powering_up and Input.is_action_just_pressed("attack") and not attacking and current_stamina >= attack_stamina_cost:
 		_start_attack()
 
 	if attacking:
@@ -115,11 +116,11 @@ func _physics_process(delta: float) -> void:
 			for overlapping_area: Area2D in overlapping_areas:
 				_try_register_attack_area(overlapping_area)
 
-	if _down_just_pressed() and _is_standing_on_drop_through_platform():
+	if not story_input_locked and _down_just_pressed() and _is_standing_on_drop_through_platform():
 		drop_through_timer = 0.35
 		body_collision.set_deferred("disabled", true)
 
-	var direction := _horizontal_input()
+	var direction := 0.0 if story_input_locked else _horizontal_input()
 	var sprinting := not stunned and not attacking and not powering_up and Input.is_action_pressed("sprint") and direction != 0.0 and is_on_floor() and current_stamina > 0.0
 	var target_speed := _movement_speed(sprinting)
 	_update_resources(delta, sprinting)
@@ -144,7 +145,7 @@ func _physics_process(delta: float) -> void:
 	elif velocity.y > 0.0:
 		velocity.y = 0.0
 
-	if not stunned and not attacking and not powering_up and _up_just_pressed() and is_on_floor() and current_stamina >= jump_stamina_cost:
+	if not story_input_locked and not stunned and not attacking and not powering_up and _up_just_pressed() and is_on_floor() and current_stamina >= jump_stamina_cost:
 		current_stamina -= jump_stamina_cost
 		velocity.y = _jump_velocity()
 	elif _up_just_released() and velocity.y < 0.0:
@@ -158,6 +159,22 @@ func _physics_process(delta: float) -> void:
 
 	_update_camera(delta)
 	_update_animation(direction, sprinting)
+
+
+func set_story_input_locked(locked: bool) -> void:
+	story_input_locked = locked
+	if locked:
+		velocity.x = 0.0
+		if attacking:
+			attacking = false
+			current_attack_swing_id = ""
+			attack_hit_targets.clear()
+			attack_hitbox.set_deferred("monitoring", false)
+		if powering_up:
+			powering_up = false
+			active_power_up_id = ""
+		if visual != null and visual.sprite_frames != null and visual.sprite_frames.has_animation(&"character_idle"):
+			visual.play(&"character_idle")
 
 
 func _update_animation(direction: float, sprinting: bool) -> void:

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="ConditionalConversation" format=3 uid="uid://dlo60rgkxkyuh"]
+
+[ext_resource type="Script" uid="uid://rbfjo4uu8rrs" path="res://map_authoring/conditional_conversation.gd" id="1"]
+[ext_resource type="Script" uid="uid://crf8psc5r5wju" path="res://map_authoring/story_condition.gd" id="2"]
+
+[sub_resource type="Resource" id="not_met"]
+script = ExtResource("2")
+condition_id = "avenger_commander_not_met"
+condition_type = "flag_is_not_set"
+target_id = "avenger_commander_met"
+
+[sub_resource type="Resource" id="faction"]
+script = ExtResource("2")
+condition_id = "avenger_commander_faction"
+condition_type = "faction_is"
+target_id = "avenger"
+
+[resource]
+script = ExtResource("1")
+entry_id = "avenger_commander_first_audience"
+conversation_id = "avenger_commander_intro"
+priority = 100
+one_time = true
+conditions = Array[ExtResource("2")]([SubResource("not_met"), SubResource("faction")])

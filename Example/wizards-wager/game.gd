@@ -7,11 +7,13 @@ const SPRITE_CACHE_PATH := "user://wizards_wager/sprite_file.json"
 const PLAYER_STATE_KEY := "player_state"
 const MOVEMENT_CHANNEL := "match/movement-test"
 const MOVEMENT_UPDATE_INTERVAL := 0.1
-const WORLD_MAP_ID := "forest"
 const RESOURCE_BAR_GROWTH_PER_STAT_POINT := 10.0
 const REMOTE_PLAYER_SCRIPT := preload("res://remote_player.gd")
 const CHAT_BUBBLE_SCRIPT := preload("res://chat_bubble.gd")
 const TARGET_INDICATOR_SCRIPT := preload("res://target_indicator.gd")
+const QUEST_PRESENTATION_SCRIPT := preload("res://quest_presentation.gd")
+const DIALOGUE_PRESENTATION_SCRIPT := preload("res://dialogue_presentation.gd")
+const CINEMATIC_DIRECTOR_SCRIPT := preload("res://cinematic_director.gd")
 
 var active_bet: ScopeWizardsWagerBet = null
 var refresh_elapsed := 0.0
@@ -48,6 +50,8 @@ var player_state_save_elapsed := 0.0
 var saving_player_state := false
 var world_join_requested := false
 var world_map_id := ""
+var world_spawn_id := ""
+var active_map_version := 0
 var last_world_sequence := 0
 var world_attack_sequence := 0
 var world_attack_prefix := ""
@@ -72,12 +76,36 @@ var faction_choice_container: VBoxContainer
 var faction_choice_title: Label
 var faction_choice_rows: Dictionary = {}
 var logging_out := false
+var quest_presentation: Control
+var interaction_prompt: Label
+var faction_change_notice: Label
+var faction_change_notice_timer := 0.0
+var quest_state_revision := 0
+var faction_state_revision := 0
+var location_revision := 0
+var client_command_sequence := 0
+var world_join_command_id := ""
+var quest_giver_states: Dictionary = {}
+var dialogue_presentation: DialoguePresentation
+var cinematic_director: CinematicDirector
+var dialogue_revision := 0
+var story_flags_revision := 0
+var cinematic_revision := 0
+var story_flags: Dictionary = {}
+var world_loading_notice: Label
+var pending_quest_interactions: Dictionary = {}
 
 
 func _ready() -> void:
 	Scope.session.session_logged_out.connect(_on_session_logged_out)
 	_setup_chat()
 	_ensure_faction_choice_display()
+	_ensure_quest_presentation()
+	_ensure_storytelling_systems()
+	_ensure_interaction_prompt()
+	_ensure_faction_change_notice()
+	_ensure_world_loading_notice()
+	_set_world_ready(false)
 	_prepare_server_enemy_template()
 	world_attack_prefix = "%s-%d" % [str(Scope.session.current_user.id), Time.get_ticks_usec()]
 	$CanvasLayer/PlayerPanel/VBoxContainer/Username.text = "Player: " + Scope.session.current_user.username
@@ -124,6 +152,15 @@ func _ready() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel") and cinematic_director != null and cinematic_director.is_active():
+		cinematic_director.skip()
+		get_viewport().set_input_as_handled()
+		return
+	var repeated_key := event is InputEventKey and (event as InputEventKey).echo
+	if event.is_action_pressed("interact") and not repeated_key and not _world_interaction_input_is_blocked():
+		_attempt_nearby_interaction()
+		get_viewport().set_input_as_handled()
+		return
 	if _handle_target_cycle_event(event):
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
@@ -186,7 +223,24 @@ func _release_target_focus() -> void:
 
 
 func _target_input_is_blocked() -> bool:
-	return $CanvasLayer/SettingsPanel.visible
+	return (
+		$CanvasLayer/SettingsPanel.visible
+		or (dialogue_presentation != null and dialogue_presentation.is_dialogue_open())
+		or (cinematic_director != null and cinematic_director.is_active())
+	)
+
+
+func _world_interaction_input_is_blocked() -> bool:
+	if _target_input_is_blocked():
+		return true
+	var focus_owner := get_viewport().gui_get_focus_owner()
+	if focus_owner is LineEdit or focus_owner is TextEdit:
+		return true
+	if dialogue_presentation != null and dialogue_presentation.is_dialogue_open():
+		return true
+	if cinematic_director != null and cinematic_director.is_active():
+		return true
+	return quest_presentation != null and quest_presentation.visible and focus_owner != null and quest_presentation.is_ancestor_of(focus_owner)
 
 
 func _set_target_mode(enabled: bool) -> void:
@@ -414,6 +468,12 @@ func _process(delta: float) -> void:
 	if logging_out:
 		return
 	_validate_current_target()
+	_update_interaction_prompt()
+	_release_orphaned_story_input_lock()
+	if faction_change_notice_timer > 0.0:
+		faction_change_notice_timer = maxf(faction_change_notice_timer - delta, 0.0)
+		if faction_change_notice_timer <= 0.0 and faction_change_notice != null:
+			faction_change_notice.visible = false
 	refresh_elapsed += delta
 	_update_player_status()
 	player_state_save_elapsed += delta
@@ -436,6 +496,23 @@ func _process(delta: float) -> void:
 		realtime_subscribed = false
 		world_join_requested = false
 		world_map_id = ""
+		world_spawn_id = ""
+		active_map_version = 0
+		quest_state_revision = 0
+		faction_state_revision = 0
+		location_revision = 0
+		world_join_command_id = ""
+		quest_giver_states.clear()
+		dialogue_revision = 0
+		story_flags_revision = 0
+		cinematic_revision = 0
+		story_flags.clear()
+		pending_quest_interactions.clear()
+		if dialogue_presentation != null:
+			dialogue_presentation.hide_dialogue()
+		if cinematic_director != null:
+			cinematic_director.interrupt()
+		$Player.call("set_story_input_locked", false)
 		chat_history_scope_id = ""
 		_reset_movement_send_state()
 		last_world_sequence = 0
@@ -444,6 +521,7 @@ func _process(delta: float) -> void:
 		pending_stat_transactions.clear()
 		_clear_authoritative_mobs()
 		_clear_remote_players()
+		_set_world_ready(false)
 	if not realtime_connected_now:
 		realtime_reconnect_elapsed += delta
 		if realtime_reconnect_elapsed >= realtime_reconnect_delay and not realtime_reconnect_attempting:
@@ -460,9 +538,16 @@ func _process(delta: float) -> void:
 		Scope.realtime.subscribe(MOVEMENT_CHANNEL)
 		realtime_subscribed = true
 	if not world_join_requested and Scope.realtime.is_open():
-		var join_result := Scope.realtime.send_command("join_area", {"map_id": WORLD_MAP_ID})
+		if world_join_command_id.is_empty():
+			world_join_command_id = _new_client_command_id("join_area")
+		var join_data: Dictionary = {"command_id": world_join_command_id}
+		if not world_map_id.is_empty():
+			join_data["map_id"] = world_map_id
+		var join_result := Scope.realtime.send_command("join_area", join_data)
 		if join_result.success:
 			world_join_requested = true
+		elif world_loading_notice != null:
+			world_loading_notice.text = "Unable to request the game world: %s" % join_result.error
 	if not player_stats_request_sent and Scope.realtime.is_open():
 		var stats_result := Scope.realtime.send_command("get_player_stats", {})
 		if stats_result.success:
@@ -752,6 +837,19 @@ func _on_realtime_message(message: Dictionary) -> void:
 	if logging_out:
 		return
 	var message_type := str(message.get("type", ""))
+	if message_type == "error":
+		var error_text := str(message.get("error", message.get("message", "Unknown realtime error")))
+		if error_text.contains("dialogue recovery"):
+			_ensure_storytelling_systems()
+			if dialogue_presentation != null:
+				dialogue_presentation.hide_dialogue()
+			if cinematic_director != null:
+				cinematic_director.stop_from_server()
+			$Player.call("set_story_input_locked", false)
+		if world_loading_notice != null and world_map_id.is_empty():
+			world_loading_notice.text = "World loading failed: %s" % error_text
+		_show_error("Realtime error: %s" % error_text)
+		return
 	if message_type == "chat_message":
 		_handle_chat_message(message)
 		return
@@ -770,8 +868,19 @@ func _on_realtime_message(message: Dictionary) -> void:
 	if message_type == "chat_history_rejected":
 		_handle_chat_history_rejected(message)
 		return
-	if message_type == "player_faction_reputation_changed":
+	if message_type in ["player_faction_reputation_changed", "player_faction_committed"]:
 		_handle_faction_reputation_changed(message)
+		return
+	if message_type in ["quest_state_snapshot", "quest_offer", "quest_accepted", "quest_declined", "quest_progress", "quest_stage_advanced", "quest_completed", "quest_abandoned", "quest_rejected", "area_transition_approved", "area_transition_rejected", "area_transition_completed"]:
+		_handle_quest_message(message_type, message)
+		return
+	if message_type in ["dialogue_started", "dialogue_state_snapshot", "dialogue_node_presented", "dialogue_choice_result", "dialogue_ended", "dialogue_rejected", "story_flags_snapshot", "story_flag_changed", "cinematic_started", "cinematic_cue", "cinematic_completed", "cinematic_interrupted"]:
+		_handle_storytelling_message(message_type, message)
+		return
+	if message_type in ["location_snapshot", "player_location", "player_location_changed", "player_relocated"]:
+		var location_event_value: Variant = message.get("data", message)
+		if location_event_value is Dictionary:
+			_apply_authoritative_location((location_event_value as Dictionary).get("location", location_event_value))
 		return
 	if message_type == "player_status":
 		_handle_player_status_message(message)
@@ -794,18 +903,547 @@ func _on_realtime_message(message: Dictionary) -> void:
 		_load_social()
 
 
+func _ensure_quest_presentation() -> void:
+	if quest_presentation != null:
+		return
+	quest_presentation = QUEST_PRESENTATION_SCRIPT.new() as Control
+	quest_presentation.name = "QuestPresentation"
+	$CanvasLayer.add_child(quest_presentation)
+	quest_presentation.quest_action.connect(_on_quest_action)
+
+
+func _ensure_storytelling_systems() -> void:
+	if cinematic_director == null:
+		cinematic_director = CINEMATIC_DIRECTOR_SCRIPT.new() as CinematicDirector
+		cinematic_director.name = "CinematicDirector"
+		add_child(cinematic_director)
+		cinematic_director.setup($Player, $Player/Camera2D, get_node_or_null("Map"), $CanvasLayer)
+		cinematic_director.cinematic_finished.connect(_on_local_cinematic_finished)
+	if dialogue_presentation == null:
+		dialogue_presentation = DIALOGUE_PRESENTATION_SCRIPT.new() as DialoguePresentation
+		dialogue_presentation.name = "DialoguePresentation"
+		$CanvasLayer.add_child(dialogue_presentation)
+		dialogue_presentation.dialogue_action.connect(_on_dialogue_action)
+		dialogue_presentation.move_to_front()
+
+
+func _ensure_interaction_prompt() -> void:
+	if interaction_prompt != null:
+		return
+	interaction_prompt = Label.new()
+	interaction_prompt.name = "InteractionPrompt"
+	interaction_prompt.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	interaction_prompt.position = Vector2(-230.0, -72.0)
+	interaction_prompt.size = Vector2(460.0, 34.0)
+	interaction_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	interaction_prompt.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	interaction_prompt.add_theme_font_size_override("font_size", 18)
+	interaction_prompt.add_theme_color_override("font_outline_color", Color.BLACK)
+	interaction_prompt.add_theme_constant_override("outline_size", 6)
+	interaction_prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	interaction_prompt.visible = false
+	$CanvasLayer.add_child(interaction_prompt)
+
+
+func _ensure_faction_change_notice() -> void:
+	if faction_change_notice != null:
+		return
+	faction_change_notice = Label.new()
+	faction_change_notice.name = "FactionChangeNotice"
+	faction_change_notice.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	faction_change_notice.position = Vector2(-260.0, 28.0)
+	faction_change_notice.size = Vector2(520.0, 52.0)
+	faction_change_notice.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	faction_change_notice.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	faction_change_notice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	faction_change_notice.add_theme_font_size_override("font_size", 18)
+	faction_change_notice.add_theme_color_override("font_outline_color", Color.BLACK)
+	faction_change_notice.add_theme_constant_override("outline_size", 6)
+	faction_change_notice.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	faction_change_notice.visible = false
+	$CanvasLayer.add_child(faction_change_notice)
+
+
+func _ensure_world_loading_notice() -> void:
+	if world_loading_notice != null:
+		return
+	world_loading_notice = Label.new()
+	world_loading_notice.name = "WorldLoadingNotice"
+	world_loading_notice.set_anchors_preset(Control.PRESET_CENTER)
+	world_loading_notice.position = Vector2(-260.0, -32.0)
+	world_loading_notice.size = Vector2(520.0, 64.0)
+	world_loading_notice.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	world_loading_notice.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	world_loading_notice.add_theme_font_size_override("font_size", 22)
+	world_loading_notice.add_theme_color_override("font_outline_color", Color.BLACK)
+	world_loading_notice.add_theme_constant_override("outline_size", 7)
+	world_loading_notice.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	$CanvasLayer.add_child(world_loading_notice)
+
+
+func _update_interaction_prompt() -> void:
+	if interaction_prompt == null:
+		return
+	if _world_interaction_input_is_blocked():
+		interaction_prompt.visible = false
+		return
+	var nearest := _nearest_interactable()
+	if nearest == null:
+		interaction_prompt.visible = false
+		return
+	var display_name := str(nearest.get("display_name"))
+	var action_text := "Talk to" if nearest is QuestGiver else "Use"
+	interaction_prompt.text = "[E / Gamepad Y] %s %s" % [action_text, display_name]
+	interaction_prompt.visible = true
+
+
+func _nearest_interactable() -> Node2D:
+	var map_root := get_node_or_null("Map") as Node2D
+	if map_root == null or not Scope.realtime.is_open() or not $Player.visible:
+		return null
+	var player_position: Vector2 = $Player.global_position
+	var nearest: Node2D = null
+	var nearest_distance: float = INF
+	for node in map_root.find_children("*", "", true, false):
+		if not node is QuestGiver and not node is AreaTransition and not node is WorldInteractable:
+			continue
+		var candidate := node as Node2D
+		var interaction_radius := float(candidate.get("interaction_radius")) if candidate is QuestGiver else float(candidate.get("required_proximity"))
+		var distance: float = player_position.distance_to(candidate.global_position)
+		if distance <= interaction_radius and distance < nearest_distance:
+			nearest = candidate
+			nearest_distance = distance
+	return nearest
+
+
+func _handle_quest_message(message_type: String, message: Dictionary) -> void:
+	_ensure_quest_presentation()
+	var data_value: Variant = message.get("data", {})
+	if not data_value is Dictionary:
+		return
+	var data: Dictionary = data_value
+	var response_command_id := str(data.get("command_id", ""))
+	var pending_interaction_value: Variant = pending_quest_interactions.get(response_command_id, null)
+	if not response_command_id.is_empty():
+		pending_quest_interactions.erase(response_command_id)
+	if message_type == "quest_rejected" and pending_interaction_value is Dictionary:
+		var rejection_reason := str(data.get("reason", data.get("reason_code", data.get("error_code", "rejected"))))
+		var pending_interaction := pending_interaction_value as Dictionary
+		if rejection_reason == "quest_not_available" and bool(pending_interaction.get("has_dialogue", false)):
+			_send_dialogue_interact(str(pending_interaction.get("npc_id", "")))
+			return
+	_apply_quest_giver_states(data)
+	var quest_value: Variant = data.get("quest", data)
+	var quest_is_current := true
+	if quest_value is Dictionary:
+		var incoming_quest_revision := int((quest_value as Dictionary).get("revision", data.get("quest_revision", 0)))
+		if incoming_quest_revision > 0 and incoming_quest_revision <= quest_state_revision:
+			quest_is_current = false
+		if incoming_quest_revision > 0:
+			quest_state_revision = maxi(quest_state_revision, incoming_quest_revision)
+	var location_value: Variant = data.get("location", {})
+	if location_value is Dictionary:
+		_apply_authoritative_location(location_value)
+	var faction_value: Variant = data.get("faction_state", {})
+	if faction_value is Dictionary:
+		_apply_faction_state(faction_value)
+	if not quest_is_current and message_type != "quest_offer":
+		return
+	var presentation_data := _quest_presentation_data(data)
+	match message_type:
+		"quest_offer":
+			quest_presentation.call("show_offer", presentation_data)
+		"quest_state_snapshot":
+			if _has_presentable_quest(presentation_data):
+				quest_presentation.call("show_state", presentation_data)
+			else:
+				quest_presentation.hide()
+		"quest_accepted", "quest_progress", "quest_stage_advanced":
+			quest_presentation.call("show_state", presentation_data)
+		"quest_completed":
+			quest_presentation.call("show_state", presentation_data)
+			quest_presentation.call("show_message", "Quest complete. Rewards confirmed by server.")
+		"quest_declined", "quest_abandoned":
+			quest_presentation.call("show_message", "Quest is no longer active.")
+		"quest_rejected":
+			quest_presentation.call("show_message", "Quest unavailable: %s" % str(data.get("reason", data.get("error_code", "rejected"))))
+		"area_transition_approved":
+			quest_presentation.call("show_message", "Transition approved. Entering %s." % str(data.get("destination_spawn_id", "the next area")))
+		"area_transition_rejected":
+			quest_presentation.call("show_message", "Transition unavailable: %s" % str(data.get("reason", "rejected")))
+		"area_transition_completed":
+			quest_presentation.call("show_message", "Area transition complete.")
+
+
+func _quest_presentation_data(data: Dictionary) -> Dictionary:
+	var presented := data.duplicate(true)
+	var quest_value: Variant = data.get("quest", data.get("offer", null))
+	if not quest_value is Dictionary:
+		for collection_key in ["active_quests", "quests"]:
+			var collection_value: Variant = data.get(collection_key, null)
+			if not collection_value is Array or (collection_value as Array).is_empty():
+				continue
+			var first_value: Variant = (collection_value as Array)[0]
+			if first_value is Dictionary:
+				quest_value = first_value
+				break
+	if quest_value is Dictionary:
+		for key_value: Variant in (quest_value as Dictionary).keys():
+			presented[key_value] = (quest_value as Dictionary)[key_value]
+	return presented
+
+
+func _has_presentable_quest(data: Dictionary) -> bool:
+	return not str(data.get("quest_id", "")).is_empty()
+
+
+func _handle_storytelling_message(message_type: String, message: Dictionary) -> void:
+	_ensure_storytelling_systems()
+	var data_value: Variant = message.get("data", {})
+	if not data_value is Dictionary:
+		return
+	var data: Dictionary = data_value
+	if message_type in ["story_flags_snapshot", "story_flag_changed"]:
+		var incoming_revision := int(data.get("story_flags_revision", data.get("revision", 0)))
+		if incoming_revision > 0 and incoming_revision <= story_flags_revision:
+			return
+		if incoming_revision > 0:
+			story_flags_revision = incoming_revision
+		var flags_value: Variant = data.get("story_flags", data.get("flags", {}))
+		if flags_value is Dictionary:
+			story_flags = (flags_value as Dictionary).duplicate(true)
+		elif flags_value is Array:
+			story_flags.clear()
+			for flag_value: Variant in flags_value:
+				if flag_value is Dictionary:
+					var flag_data := flag_value as Dictionary
+					var snapshot_flag_id := str(flag_data.get("flag_id", ""))
+					if not snapshot_flag_id.is_empty():
+						story_flags[snapshot_flag_id] = flag_data.get("value")
+		else:
+			var flag_id := str(data.get("flag_id", ""))
+			if not flag_id.is_empty():
+				story_flags[flag_id] = data.get("value")
+		return
+	if message_type.begins_with("dialogue_"):
+		var dialogue_data := _dialogue_presentation_data(data)
+		var incoming_dialogue_revision := int(dialogue_data.get("dialogue_revision", dialogue_data.get("revision", 0)))
+		if incoming_dialogue_revision > 0 and incoming_dialogue_revision <= dialogue_revision and message_type not in ["dialogue_rejected"]:
+			return
+		if incoming_dialogue_revision > 0:
+			dialogue_revision = incoming_dialogue_revision
+		match message_type:
+			"dialogue_started", "dialogue_state_snapshot", "dialogue_node_presented", "dialogue_choice_result":
+				if not _has_presentable_dialogue_node(dialogue_data):
+					dialogue_presentation.hide_dialogue()
+					$Player.call("set_story_input_locked", false)
+					push_warning("[Dialogue] Server event %s did not contain a presentable node." % message_type)
+					return
+				dialogue_presentation.show_node(dialogue_data)
+				var dialogue_is_active := bool(dialogue_data.get("active", true))
+				# Story events are delivered before the authoritative location during login.
+				# Outbox replays may use a live event name, so the event name alone cannot
+				# distinguish recovery from a newly started conversation.
+				var is_recovery_delivery := message_type == "dialogue_state_snapshot" or world_map_id.is_empty()
+				var lock_input := dialogue_is_active and not is_recovery_delivery and bool(dialogue_data.get("lock_local_input", true))
+				$Player.call("set_story_input_locked", lock_input)
+			"dialogue_ended":
+				dialogue_presentation.hide_dialogue()
+				if cinematic_director == null or not cinematic_director.is_active():
+					$Player.call("set_story_input_locked", false)
+			"dialogue_rejected":
+				dialogue_presentation.show_rejection(str(data.get("reason", data.get("reason_code", data.get("error_code", "rejected")))))
+				$Player.call("set_story_input_locked", false)
+		return
+	var cinematic_data := _cinematic_presentation_data(data)
+	var incoming_cinematic_revision := int(cinematic_data.get("cinematic_revision", cinematic_data.get("revision", 0)))
+	if incoming_cinematic_revision > 0 and incoming_cinematic_revision <= cinematic_revision:
+		return
+	if incoming_cinematic_revision > 0:
+		cinematic_revision = incoming_cinematic_revision
+	match message_type:
+		"cinematic_started":
+			if not cinematic_data.get("cues", []) is Array or (cinematic_data.get("cues", []) as Array).is_empty():
+				var local_definition := _local_cinematic_definition(str(cinematic_data.get("cinematic_id", "")))
+				for key_value in local_definition.keys():
+					if not cinematic_data.has(key_value):
+						cinematic_data[key_value] = local_definition[key_value]
+			cinematic_director.play_sequence(cinematic_data)
+		"cinematic_cue":
+			cinematic_director.apply_cue(cinematic_data)
+		"cinematic_completed":
+			cinematic_director.stop_from_server()
+			if dialogue_presentation == null or not dialogue_presentation.is_dialogue_open():
+				$Player.call("set_story_input_locked", false)
+		"cinematic_interrupted":
+			cinematic_director.stop_from_server()
+			$Player.call("set_story_input_locked", false)
+
+
+func _dialogue_presentation_data(data: Dictionary) -> Dictionary:
+	var snapshot := data
+	var dialogue_value: Variant = data.get("dialogue", null)
+	if dialogue_value is Dictionary:
+		snapshot = dialogue_value as Dictionary
+	var presented := snapshot.duplicate(true)
+	var node_value: Variant = snapshot.get("node", null)
+	if node_value is Dictionary:
+		for key_value: Variant in (node_value as Dictionary).keys():
+			presented[key_value] = (node_value as Dictionary)[key_value]
+	for key_value: Variant in data.keys():
+		if not presented.has(key_value):
+			presented[key_value] = data[key_value]
+	return presented
+
+
+func _has_presentable_dialogue_node(data: Dictionary) -> bool:
+	return not str(data.get("dialogue_session_id", "")).is_empty() \
+		and not str(data.get("conversation_id", "")).is_empty() \
+		and not str(data.get("node_id", "")).is_empty()
+
+
+func _release_orphaned_story_input_lock() -> void:
+	if not bool($Player.get("story_input_locked")):
+		return
+	var active_dialogue_lock := (
+		dialogue_presentation != null
+		and dialogue_presentation.is_dialogue_open()
+		and dialogue_presentation.session_active
+	)
+	var active_cinematic_lock := cinematic_director != null and cinematic_director.is_active()
+	if not active_dialogue_lock and not active_cinematic_lock:
+		$Player.call("set_story_input_locked", false)
+
+
+func _cinematic_presentation_data(data: Dictionary) -> Dictionary:
+	var cinematic_value: Variant = data.get("cinematic", null)
+	if cinematic_value is Dictionary:
+		var presented := (cinematic_value as Dictionary).duplicate(true)
+		for key_value: Variant in data.keys():
+			if not presented.has(key_value):
+				presented[key_value] = data[key_value]
+		return presented
+	return data.duplicate(true)
+
+
+func _local_cinematic_definition(cinematic_id: String) -> Dictionary:
+	var authored_map := get_node_or_null("Map") as MapRoot
+	if authored_map == null or cinematic_id.is_empty():
+		return {}
+	var definition := authored_map.collect_definition()
+	for cinematic_value in definition.get("cinematic_sequences", []):
+		if cinematic_value is Dictionary and str((cinematic_value as Dictionary).get("cinematic_id", "")) == cinematic_id:
+			return (cinematic_value as Dictionary).duplicate(true)
+	return {}
+
+
+func _on_dialogue_action(action: String, session_id: String, conversation_id: String, node_id: String, choice_id: String) -> void:
+	if not Scope.realtime.is_open():
+		return
+	var command: String = str({
+		"choose": "dialogue_choose",
+		"continue": "dialogue_continue",
+		"exit": "dialogue_exit"
+	}.get(action, ""))
+	if command.is_empty():
+		return
+	Scope.realtime.send_command(command, {
+		"command_id": _new_client_command_id(str(command)),
+		"dialogue_session_id": session_id,
+		"conversation_id": conversation_id,
+		"node_id": node_id,
+		"choice_id": choice_id,
+		"map_id": world_map_id
+	})
+
+
+func _on_local_cinematic_finished(cinematic_id: String, skipped: bool) -> void:
+	if not Scope.realtime.is_open():
+		return
+	var command := "cinematic_skip" if skipped else "cinematic_presentation_complete"
+	Scope.realtime.send_command(command, {
+		"command_id": _new_client_command_id(command),
+		"cinematic_id": cinematic_id,
+		"dialogue_session_id": dialogue_presentation.session_id if dialogue_presentation != null else "",
+		"map_id": world_map_id
+	})
+	if dialogue_presentation == null or not dialogue_presentation.is_dialogue_open():
+		$Player.call("set_story_input_locked", false)
+
+
+func _apply_quest_giver_states(data: Dictionary) -> void:
+	var states_value: Variant = data.get("quest_giver_states", data.get("quest_givers", null))
+	if not states_value is Array:
+		return
+	for state_value: Variant in states_value:
+		if not state_value is Dictionary:
+			continue
+		var state := state_value as Dictionary
+		var npc_id := str(state.get("npc_id", ""))
+		if npc_id.is_empty():
+			continue
+		quest_giver_states[npc_id] = str(state.get("state", state.get("quest_state", "none")))
+	_apply_quest_giver_states_to_map()
+
+
+func _apply_quest_giver_states_to_map() -> void:
+	var map_root := get_node_or_null("Map")
+	if map_root == null:
+		return
+	for node in map_root.find_children("*", "QuestGiver", true, false):
+		var npc_id := str(node.get("npc_id"))
+		node.call("set_quest_marker_state", str(quest_giver_states.get(npc_id, "none")))
+
+
+func _on_quest_action(action: String, quest_id: String, npc_id: String) -> void:
+	if not Scope.realtime.is_open():
+		return
+	var command_by_action := {
+		"accept": "quest_accept",
+		"decline": "quest_decline",
+		"abandon": "quest_abandon"
+	}
+	var command := str(command_by_action.get(action, ""))
+	if command.is_empty():
+		return
+	Scope.realtime.send_command(command, {"command_id": _new_client_command_id(command), "quest_id": quest_id, "npc_id": npc_id, "map_id": world_map_id})
+
+
+func _attempt_nearby_interaction() -> void:
+	var nearest := _nearest_interactable()
+	if nearest == null:
+		return
+	if nearest is QuestGiver:
+		var has_dialogue := not str(nearest.get("default_conversation_id")).is_empty()
+		var conditional_value: Variant = nearest.get("conditional_conversations")
+		has_dialogue = has_dialogue or (conditional_value is Array and not (conditional_value as Array).is_empty())
+		var npc_id := str(nearest.get("npc_id"))
+		var command_id := _new_client_command_id("quest_interact")
+		pending_quest_interactions[command_id] = {"npc_id": npc_id, "has_dialogue": has_dialogue}
+		var result := Scope.realtime.send_command("quest_interact", {"command_id": command_id, "npc_id": npc_id, "map_id": world_map_id})
+		if not result.success:
+			pending_quest_interactions.erase(command_id)
+			if has_dialogue:
+				_send_dialogue_interact(npc_id)
+	elif nearest is AreaTransition:
+		Scope.realtime.send_command("request_area_transition", {"command_id": _new_client_command_id("transition"), "transition_id": str(nearest.get("transition_id")), "map_id": world_map_id})
+	elif nearest is WorldInteractable:
+		Scope.realtime.send_command("world_object_interact", {"command_id": _new_client_command_id("world_object_interact"), "object_id": str(nearest.get("object_id")), "map_id": world_map_id})
+
+
+func _send_dialogue_interact(npc_id: String) -> void:
+	if npc_id.is_empty() or not Scope.realtime.is_open():
+		return
+	Scope.realtime.send_command("dialogue_interact", {
+		"command_id": _new_client_command_id("dialogue_interact"),
+		"npc_id": npc_id,
+		"map_id": world_map_id
+	})
+
+
+func _new_client_command_id(prefix: String) -> String:
+	client_command_sequence += 1
+	return "%s-%d-%d-%d" % [prefix, int(Scope.session.current_user.id), Time.get_ticks_usec(), client_command_sequence]
+
+
+func _apply_authoritative_location(value: Variant) -> void:
+	if not value is Dictionary:
+		return
+	var location: Dictionary = value
+	var incoming_revision := int(location.get("location_revision", location.get("revision", 0)))
+	if incoming_revision > 0 and incoming_revision <= location_revision:
+		return
+	var incoming_map_id := str(location.get("world_map_id", location.get("map_id", "")))
+	if incoming_map_id.is_empty():
+		return
+	var map_changed := world_map_id != incoming_map_id
+	if map_changed and not _load_authored_map(incoming_map_id):
+		return
+	if incoming_revision > 0:
+		location_revision = incoming_revision
+	if map_changed:
+		world_join_requested = false
+		world_join_command_id = ""
+		_clear_authoritative_mobs()
+		_clear_remote_players()
+	world_map_id = incoming_map_id
+	world_spawn_id = str(location.get("spawn_id", location.get("world_spawn_id", world_spawn_id)))
+	active_map_version = int(location.get("map_version", location.get("map_definition_version", active_map_version)))
+	_place_player_at_authoritative_location(location)
+	_set_world_ready(true)
+
+
+func _set_world_ready(ready: bool) -> void:
+	$Player.visible = ready
+	$Player.process_mode = Node.PROCESS_MODE_INHERIT if ready else Node.PROCESS_MODE_DISABLED
+	if world_loading_notice != null:
+		world_loading_notice.text = "Loading world..."
+		world_loading_notice.visible = not ready
+	if not ready and interaction_prompt != null:
+		interaction_prompt.visible = false
+
+
+func _load_authored_map(map_id: String) -> bool:
+	var map_path := "res://maps/%s/%s_map.tscn" % [map_id, map_id]
+	if not ResourceLoader.exists(map_path):
+		push_warning("[Map] No authored scene exists for authoritative map %s." % map_id)
+		return false
+	var current_map := get_node_or_null("Map")
+	if current_map != null and str(current_map.get("map_id")) == map_id:
+		return true
+	var packed_map := load(map_path) as PackedScene
+	if packed_map == null:
+		push_warning("[Map] Authored scene could not be loaded for map %s." % map_id)
+		return false
+	if current_map != null:
+		remove_child(current_map)
+		current_map.queue_free()
+	var authored_map := packed_map.instantiate()
+	authored_map.name = "Map"
+	add_child(authored_map)
+	move_child(authored_map, 0)
+	_apply_quest_giver_states_to_map()
+	if cinematic_director != null:
+		cinematic_director.update_map(authored_map)
+	return true
+
+
+func _place_player_at_authoritative_location(location: Dictionary) -> void:
+	var position_value: Variant = location.get("position", null)
+	if position_value is Dictionary:
+		var position_data := position_value as Dictionary
+		if position_data.has("x") and position_data.has("y"):
+			$Player.global_position = Vector2(
+				float(position_data.get("x", 0.0)),
+				float(position_data.get("y", 0.0))
+			)
+			return
+	if world_spawn_id.is_empty():
+		return
+	var authored_map := get_node_or_null("Map")
+	if authored_map == null:
+		return
+	for node in authored_map.find_children("*", "MapPlayerSpawn", true, false):
+		if str(node.get("spawn_id")) == world_spawn_id:
+			$Player.global_position = node.global_position
+			break
+
+
 func _handle_faction_reputation_changed(message: Dictionary) -> void:
 	var data_value: Variant = message.get("data", {})
 	if data_value is Dictionary:
 		# The event contains the complete, absolute PlayerFactionState. Do not
 		# apply its deltas locally; attack acknowledgements carry the same state.
-		_apply_faction_state(data_value)
+		_apply_faction_state((data_value as Dictionary).get("faction_state", data_value))
 
 
 func _apply_faction_state(value: Variant) -> void:
 	if not value is Dictionary:
 		return
 	var incoming_state: Dictionary = value
+	var incoming_revision := int(incoming_state.get("revision", incoming_state.get("faction_revision", 0)))
+	if incoming_revision > 0 and incoming_revision <= faction_state_revision:
+		return
 	if not incoming_state.has("standings"):
 		return
 	var player_id := int(incoming_state.get("player_id", 0))
@@ -814,8 +1452,42 @@ func _apply_faction_state(value: Variant) -> void:
 	var standings_value: Variant = incoming_state.get("standings", [])
 	if not standings_value is Array:
 		return
+	var previous_reputation := _faction_reputation_values(faction_state)
+	if incoming_revision > 0:
+		faction_state_revision = incoming_revision
 	faction_state = incoming_state.duplicate(true)
 	_update_faction_choice_display()
+	_show_faction_reputation_changes(previous_reputation, _faction_reputation_values(faction_state))
+
+
+func _faction_reputation_values(state: Dictionary) -> Dictionary:
+	var values := {}
+	var standings_value: Variant = state.get("standings", [])
+	if standings_value is Array:
+		for standing_value: Variant in standings_value:
+			if standing_value is Dictionary:
+				var standing := standing_value as Dictionary
+				values[str(standing.get("faction_id", ""))] = int(standing.get("reputation", 0))
+	return values
+
+
+func _show_faction_reputation_changes(previous: Dictionary, current: Dictionary) -> void:
+	if previous.is_empty() or faction_change_notice == null:
+		return
+	var changes: PackedStringArray = []
+	for faction_id_value: Variant in current.keys():
+		var faction_id := str(faction_id_value)
+		if not previous.has(faction_id):
+			continue
+		var difference := int(current[faction_id]) - int(previous[faction_id])
+		if difference == 0:
+			continue
+		changes.append("%s %s%d" % [faction_id.capitalize(), "+" if difference > 0 else "", difference])
+	if changes.is_empty():
+		return
+	faction_change_notice.text = "Reputation: %s" % ", ".join(changes)
+	faction_change_notice.visible = true
+	faction_change_notice_timer = 4.0
 
 
 func _ensure_faction_choice_display() -> void:
@@ -916,6 +1588,8 @@ func _handle_authoritative_stats_message(message_type: String, message: Dictiona
 	_apply_faction_state(data.get("faction_state", {}))
 	if authoritative_state is Dictionary:
 		_apply_faction_state((authoritative_state as Dictionary).get("faction_state", {}))
+		_apply_authoritative_location((authoritative_state as Dictionary).get("location", {}))
+	_apply_authoritative_location(data.get("location", {}))
 	var target_player_id := int(data.get("player_id", 0))
 	if authoritative_state is Dictionary:
 		target_player_id = int((authoritative_state as Dictionary).get("player_id", target_player_id))
@@ -930,6 +1604,9 @@ func _handle_world_message(message_type: String, message: Dictionary) -> void:
 	if not data_value is Dictionary:
 		return
 	var data: Dictionary = data_value
+	if message_type == "world_snapshot":
+		_apply_authoritative_location(data.get("location", {}))
+	_update_active_map_version(data)
 	match message_type:
 		"world_snapshot":
 			_apply_world_snapshot(data)
@@ -987,6 +1664,15 @@ func _handle_world_message(message_type: String, message: Dictionary) -> void:
 			if int(data.get("player_id", Scope.session.current_user.id)) == int(Scope.session.current_user.id):
 				$Player.call("apply_authoritative_power_up_expired", data)
 
+
+func _update_active_map_version(data: Dictionary) -> void:
+	var incoming_version := int(data.get("map_version", data.get("map_definition_version", 0)))
+	if incoming_version <= 0:
+		return
+	if active_map_version > 0 and incoming_version != active_map_version:
+		push_warning("[Map] Server map version changed from %d to %d." % [active_map_version, incoming_version])
+	active_map_version = incoming_version
+
 func _accept_world_sequence(data: Dictionary) -> bool:
 	var sequence := int(data.get("sequence", 0))
 	if sequence <= 0:
@@ -1000,16 +1686,22 @@ func _request_world_resync() -> void:
 	if not Scope.realtime.is_open() or world_map_id.is_empty():
 		return
 	world_join_requested = false
-	var result := Scope.realtime.send_command("join_area", {"map_id": world_map_id})
+	world_join_command_id = _new_client_command_id("join_area_resync")
+	var result := Scope.realtime.send_command("join_area", {
+		"command_id": world_join_command_id,
+		"map_id": world_map_id
+	})
 	if result.success:
 		world_join_requested = true
 
 func _apply_world_snapshot(data: Dictionary) -> void:
 	_apply_faction_state(data.get("faction_state", {}))
-	var incoming_map_id := str(data.get("map_id", WORLD_MAP_ID))
-	if not world_map_id.is_empty() and incoming_map_id != world_map_id:
-		_clear_remote_players()
-	world_map_id = incoming_map_id
+	var incoming_map_id := str(data.get("map_id", world_map_id))
+	if incoming_map_id.is_empty():
+		return
+	if incoming_map_id != world_map_id:
+		push_warning("[World] Ignoring snapshot for map %s while authoritative location is %s." % [incoming_map_id, world_map_id])
+		return
 	last_world_sequence = int(data.get("sequence", 0))
 	var snapshot_ids: Dictionary = {}
 	var snapshot_received_at := float(Time.get_ticks_msec()) / 1000.0
@@ -1030,7 +1722,7 @@ func _apply_world_snapshot(data: Dictionary) -> void:
 	for mob_value: Variant in presented_mobs:
 		if not mob_value is Dictionary:
 			continue
-		var mob_data: Dictionary = mob_value
+		var mob_data: Dictionary = _normalize_authoritative_combatant(mob_value)
 		var mob_id := str(mob_data.get("mob_id", ""))
 		if mob_id.is_empty():
 			continue
@@ -1048,17 +1740,36 @@ func _apply_mob_snapshot(data: Dictionary) -> void:
 	if mobs_value is Array:
 		for mob_value: Variant in mobs_value:
 			if mob_value is Dictionary:
-				_spawn_or_update_authoritative_mob(mob_value, snapshot_received_at)
+				_spawn_or_update_authoritative_mob(_normalize_authoritative_combatant(mob_value), snapshot_received_at)
 	if combatants_value is Array:
 		for combatant_value: Variant in combatants_value:
 			if combatant_value is Dictionary:
-				_spawn_or_update_authoritative_mob(combatant_value, snapshot_received_at)
+				_spawn_or_update_authoritative_mob(_normalize_authoritative_combatant(combatant_value), snapshot_received_at)
+
+
+func _normalize_authoritative_combatant(raw_data: Dictionary) -> Dictionary:
+	var data: Dictionary = raw_data.duplicate()
+	var mob_id := str(data.get("mob_id", ""))
+	if mob_id.is_empty():
+		mob_id = str(data.get("combatant_id", data.get("legacy_mob_id", data.get("id", ""))))
+		if not mob_id.is_empty():
+			data["mob_id"] = mob_id
+	var archetype_id := str(data.get("archetype_id", "")).to_lower()
+	var mob_type := str(data.get("mob_type", "")).to_lower()
+	if mob_type.is_empty() or mob_type == "npc":
+		if not archetype_id.is_empty():
+			data["mob_type"] = archetype_id
+	var visual_id := str(data.get("visual_id", "")).to_lower()
+	if visual_id.is_empty() and not archetype_id.is_empty():
+		data["visual_id"] = archetype_id
+	return data
 
 func _prepare_server_enemy_template() -> void:
 	var template_names: Dictionary = {
 		"zombie": "Zombie",
 		"goblin": "Goblin",
 		"skeleton": "Skeleton",
+		"npc": "NPC",
 		"justice_knight": "NPC",
 		"avenger_knight": "NPC"
 	}
@@ -1107,13 +1818,16 @@ func _on_enemy_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: 
 		$CanvasLayer/PlayerDetailsPanel.visible = false
 
 func _spawn_or_update_authoritative_mob(data: Dictionary, snapshot_received_at: float = -1.0) -> void:
+	data = _normalize_authoritative_combatant(data)
+	_log_spawn_surface_debug(data)
 	var mob_id := str(data.get("mob_id", ""))
 	if mob_id.is_empty():
 		push_warning("[World] Ignoring mob event without mob_id")
 		return
 	var mob_type := str(data.get("mob_type", "zombie")).to_lower()
 	var visual_id := str(data.get("visual_id", "")).to_lower()
-	var template_key := visual_id if server_enemy_templates.has(visual_id) else mob_type
+	var combatant_kind := str(data.get("combatant_kind", "")).to_lower()
+	var template_key := "npc" if combatant_kind == "npc" and _character_sheet_exists(visual_id) else (visual_id if server_enemy_templates.has(visual_id) else mob_type)
 	var enemy: Node = authoritative_mobs.get(mob_id)
 	if enemy == null or not is_instance_valid(enemy):
 		var selected_template: Node = server_enemy_templates.get(template_key, server_enemy_templates.get("zombie"))
@@ -1131,8 +1845,39 @@ func _spawn_or_update_authoritative_mob(data: Dictionary, snapshot_received_at: 
 		_connect_enemy_target(enemy)
 		authoritative_mobs[mob_id] = enemy
 		enemy.tree_exited.connect(_on_authoritative_mob_tree_exited.bind(mob_id, enemy), CONNECT_ONE_SHOT)
+		if ScopeConfig.debug_logging():
+			print("[World] combatant_created id=%s type=%s visual=%s state=%s" % [mob_id, mob_type, visual_id, str(data.get("state", ""))])
+	enemy.show()
+	var visual_node := enemy.get_node_or_null("Visual") as CanvasItem
+	if visual_node != null:
+		visual_node.show()
 	if enemy.has_method("apply_server_snapshot"):
 		enemy.call("apply_server_snapshot", data, snapshot_received_at)
+
+
+func _character_sheet_exists(visual_id: String) -> bool:
+	if visual_id.is_empty():
+		return false
+	for file_name in DirAccess.get_files_at("res://assets/NPCSHEETS"):
+		if file_name.to_lower().ends_with(".png") and file_name.get_basename().to_snake_case() == visual_id.to_snake_case():
+			return true
+	return false
+
+
+func _log_spawn_surface_debug(data: Dictionary) -> void:
+	if not ScopeConfig.debug_logging():
+		return
+	var authored_surface := str(data.get("surface_id", ""))
+	var resolved_surface := str(data.get("resolved_surface_id", ""))
+	var resolved_ground: Variant = data.get("resolved_ground_y", null)
+	if authored_surface.is_empty() and resolved_surface.is_empty() and resolved_ground == null:
+		return
+	print("[Map] mob_spawned surface_id=%s resolved_surface_id=%s resolved_ground_y=%s spawn_id=%s" % [
+		authored_surface,
+		resolved_surface,
+		str(resolved_ground),
+		str(data.get("spawn_id", ""))
+	])
 
 
 func _on_authoritative_mob_tree_exited(mob_id: String, enemy: Node) -> void:
@@ -1152,6 +1897,8 @@ func _apply_authoritative_mob_damage(data: Dictionary) -> void:
 
 func _apply_authoritative_mob_death(data: Dictionary) -> void:
 	var mob_id := str(data.get("mob_id", ""))
+	if ScopeConfig.debug_logging():
+		print("[World] combatant_died id=%s spawn_group=%s" % [mob_id, str(data.get("spawn_group_id", ""))])
 	var enemy: Node = authoritative_mobs.get(mob_id)
 	if enemy != null and is_instance_valid(enemy) and enemy.has_method("apply_server_death"):
 		enemy.call("apply_server_death", data)
@@ -1227,7 +1974,7 @@ func _process_movement_sync(delta: float) -> void:
 	# Movement synchronization stays in the game layer. The SDK only transports
 	# generic realtime events, so this can later be reused for entities, NPCs,
 	# projectiles, prediction, interpolation, or an authoritative server.
-	if not Scope.realtime.is_open() or not realtime_subscribed:
+	if not Scope.realtime.is_open() or not realtime_subscribed or world_map_id.is_empty() or not $Player.visible:
 		return
 	movement_elapsed += delta
 	var local_player: CharacterBody2D = $Player
@@ -1235,7 +1982,7 @@ func _process_movement_sync(delta: float) -> void:
 	var local_facing := 1 if float(local_player.get("facing_direction")) >= 0.0 else -1
 	var local_grounded := local_player.is_on_floor()
 	var movement_state := _local_player_movement_state(local_player)
-	var local_map_id := world_map_id if not world_map_id.is_empty() else WORLD_MAP_ID
+	var local_map_id := world_map_id
 	var position_changed := not has_sent_position or not local_player.position.is_equal_approx(last_sent_position)
 	var teleporting := has_sent_position and (
 		local_player.position.distance_to(last_sent_position) > 250.0

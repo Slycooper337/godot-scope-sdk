@@ -1,0 +1,179 @@
+[gd_scene format=3 uid="uid://bhlm3j13b0gkd"]
+
+[ext_resource type="Script" uid="uid://cc0u56ymtml23" path="res://maps/sewer/sewer_map.gd" id="1_root"]
+[ext_resource type="Script" uid="uid://h7i7o5irf3y6" path="res://map_authoring/map_physics_surface.gd" id="2_surface"]
+[ext_resource type="Texture2D" uid="uid://i2rp7mm2bphm" path="res://assets/Dungeon_brick_wall_grey.png.png" id="2_tywn6"]
+[ext_resource type="Script" uid="uid://dly5fxxy4dg0k" path="res://map_authoring/combatant_spawn_area.gd" id="3_spawn"]
+[ext_resource type="Script" uid="uid://bvpesjwryhy0o" path="res://map_authoring/quest_catalog.gd" id="4_catalog"]
+[ext_resource type="Script" uid="uid://cxam6yrwqsf0s" path="res://map_authoring/quest_giver.gd" id="5_giver"]
+[ext_resource type="Script" uid="uid://4k2a30k035hp" path="res://map_authoring/area_transition.gd" id="6_transition"]
+[ext_resource type="Script" uid="uid://2qb2phgiqkoq" path="res://map_authoring/player_spawn.gd" id="7_player_spawn"]
+[ext_resource type="Resource" path="res://maps/sewer/behaviors/sewer_enemy_patrol.tres" id="8_behavior"]
+[ext_resource type="Resource" uid="uid://cabecu47cfny6" path="res://maps/sewer/quests/sewer_first_hunt.tres" id="9_q1"]
+[ext_resource type="Resource" uid="uid://dvkprx6tmxfpe" path="res://maps/sewer/quests/sewer_deeper_threats.tres" id="10_q2"]
+[ext_resource type="Resource" uid="uid://cg476f2ik13ev" path="res://maps/sewer/quests/sewer_find_exit.tres" id="11_q3"]
+[ext_resource type="Script" uid="uid://cpod1nottpg1o" path="res://map_authoring/dialogue_catalog.gd" id="12_dialogue_catalog"]
+[ext_resource type="Script" uid="uid://cw24bjcv5oqjg" path="res://map_authoring/story_flag_catalog.gd" id="13_flag_catalog"]
+[ext_resource type="Resource" uid="uid://b50x4l36fn8bx" path="res://maps/sewer/dialogue/sewer_guide_intro.tres" id="14_intro"]
+[ext_resource type="Resource" uid="uid://xmflwrkyvtta" path="res://maps/sewer/dialogue/sewer_guide_repeat.tres" id="15_repeat"]
+[ext_resource type="Resource" uid="uid://bwqo2quapal16" path="res://maps/sewer/dialogue/sewer_guide_intro_entry.tres" id="16_intro_entry"]
+[ext_resource type="Resource" path="res://maps/sewer/dialogue/flags/met_sewer_guide.tres" id="17_met_flag"]
+[ext_resource type="Resource" path="res://maps/sewer/dialogue/flags/learned_about_endless_war.tres" id="18_war_flag"]
+[ext_resource type="Script" uid="uid://dq18rt3pcxilx" path="res://map_authoring/dialogue_conversation.gd" id="19_dialogue_type"]
+[ext_resource type="Script" uid="uid://ntsx2a1gc6es" path="res://map_authoring/story_flag_definition.gd" id="20_flag_type"]
+[ext_resource type="Script" uid="uid://rbfjo4uu8rrs" path="res://map_authoring/conditional_conversation.gd" id="21_conditional_type"]
+[ext_resource type="Script" uid="uid://dl6r8dv0f0skn" path="res://map_authoring/quest_definition.gd" id="22_quest_type"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_2vrlc"]
+size = Vector2(9600, 329)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hav5x"]
+size = Vector2(900, 16)
+
+[node name="SewerMap" type="Node2D" unique_id=274469891]
+script = ExtResource("1_root")
+map_id = "sewer"
+display_name = "Sewers Beneath the Warfront"
+area_type = "tutorial_sewer"
+enterable = true
+published_version = 1
+archetype_ids = PackedStringArray("zombie", "goblin", "skeleton", "npc")
+faction_ids = PackedStringArray("player", "enemy", "neutral")
+
+[node name="Visuals" type="Node2D" parent="." unique_id=600997037]
+
+[node name="Parallax2D" type="Parallax2D" parent="Visuals" unique_id=1007876918]
+repeat_size = Vector2(1920, 1080)
+repeat_times = 6
+
+[node name="Sprite2D" type="Sprite2D" parent="Visuals/Parallax2D" unique_id=1355159166]
+texture = ExtResource("2_tywn6")
+
+[node name="PhysicsSurfaces" type="Node2D" parent="." unique_id=1823868328]
+
+[node name="sewer_floor" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=725311689]
+position = Vector2(4800, 678.5)
+script = ExtResource("2_surface")
+surface_id = "sewer_floor"
+surface_role = "floor"
+size = Vector2(9600, 329)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/sewer_floor" unique_id=1041980901]
+shape = SubResource("RectangleShape2D_2vrlc")
+
+[node name="sewer_platform" type="StaticBody2D" parent="PhysicsSurfaces" unique_id=896134945]
+position = Vector2(2200, 250)
+script = ExtResource("2_surface")
+surface_id = "sewer_platform"
+surface_role = "platform"
+size = Vector2(900, 16)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PhysicsSurfaces/sewer_platform" unique_id=613783003]
+shape = SubResource("RectangleShape2D_hav5x")
+
+[node name="PlayerSpawns" type="Node2D" parent="." unique_id=1445434510]
+
+[node name="PlayerStart" type="Node2D" parent="PlayerSpawns" unique_id=2116606877]
+position = Vector2(400, 435)
+script = ExtResource("7_player_spawn")
+surface_id = "sewer_floor"
+
+[node name="SewerReturn" type="Node2D" parent="PlayerSpawns" unique_id=1945927763]
+position = Vector2(400, 435)
+script = ExtResource("7_player_spawn")
+spawn_id = "sewer_return"
+surface_id = "sewer_floor"
+
+[node name="EnemySpawns" type="Node2D" parent="." unique_id=996004304]
+
+[node name="Zombies" type="Node2D" parent="EnemySpawns" unique_id=1016092439]
+position = Vector2(1500, 435)
+script = ExtResource("3_spawn")
+spawn_id = "sewer_zombies"
+visual_id = "zombie"
+faction_id = "enemy"
+spawn_count = 3
+placement_mode = 1
+bounds = Vector2(900, 80)
+behavior_profile_id = "sewer_enemy_patrol"
+behavior_profile = ExtResource("8_behavior")
+surface_id = "sewer_floor"
+hostile_factions = PackedStringArray()
+hostile_archetypes = PackedStringArray()
+
+[node name="Goblins" type="Node2D" parent="EnemySpawns" unique_id=1214568625]
+position = Vector2(3000, 435)
+script = ExtResource("3_spawn")
+spawn_id = "sewer_goblins"
+archetype_id = "goblin"
+visual_id = "goblin"
+faction_id = "enemy"
+spawn_count = 3
+placement_mode = 1
+bounds = Vector2(900, 80)
+behavior_profile_id = "sewer_enemy_patrol"
+behavior_profile = ExtResource("8_behavior")
+surface_id = "sewer_floor"
+hostile_factions = PackedStringArray()
+hostile_archetypes = PackedStringArray()
+
+[node name="Skeletons" type="Node2D" parent="EnemySpawns" unique_id=239453364]
+position = Vector2(3900, 435)
+script = ExtResource("3_spawn")
+spawn_id = "sewer_skeletons"
+archetype_id = "skeleton"
+visual_id = "skeleton"
+faction_id = "enemy"
+spawn_count = 3
+placement_mode = 1
+bounds = Vector2(900, 80)
+behavior_profile_id = "sewer_enemy_patrol"
+behavior_profile = ExtResource("8_behavior")
+surface_id = "sewer_floor"
+hostile_factions = PackedStringArray()
+hostile_archetypes = PackedStringArray()
+
+[node name="Quests" type="Node" parent="." unique_id=393474125]
+
+[node name="QuestCatalog" type="Node" parent="Quests" unique_id=1672118502]
+script = ExtResource("4_catalog")
+quests = Array[ExtResource("22_quest_type")]([ExtResource("9_q1"), ExtResource("10_q2"), ExtResource("11_q3")])
+
+[node name="Transitions" type="Node2D" parent="." unique_id=975779659]
+
+[node name="QuestAreas" type="Node2D" parent="." unique_id=1444267749]
+
+[node name="Interactables" type="Node2D" parent="." unique_id=1468450462]
+
+[node name="CinematicMarkers" type="Node2D" parent="." unique_id=2098780182]
+
+[node name="Storytelling" type="Node" parent="." unique_id=1460769529]
+
+[node name="DialogueCatalog" type="Node" parent="Storytelling" unique_id=1144471389]
+script = ExtResource("12_dialogue_catalog")
+conversations = Array[ExtResource("19_dialogue_type")]([ExtResource("14_intro"), ExtResource("15_repeat")])
+
+[node name="StoryFlagCatalog" type="Node" parent="Storytelling" unique_id=1433831168]
+script = ExtResource("13_flag_catalog")
+flags = Array[ExtResource("20_flag_type")]([ExtResource("17_met_flag"), ExtResource("18_war_flag")])
+
+[node name="NPCSpawns" type="Node2D" parent="." unique_id=491907644]
+
+[node name="SewerGuide" type="Node2D" parent="NPCSpawns" unique_id=333065189]
+position = Vector2(800, 435)
+script = ExtResource("5_giver")
+npc_id = "sewer_guide"
+display_name = "Sewer Guide"
+default_conversation_id = "sewer_guide_repeat"
+conditional_conversations = Array[ExtResource("21_conditional_type")]([ExtResource("16_intro_entry")])
+ambient_lines = PackedStringArray("Keep your guard up. The dead do not tire.", "The war above is louder, but these tunnels are no safer.")
+surface_id = "sewer_floor"
+quest_ids = PackedStringArray("sewer_first_hunt", "sewer_deeper_threats", "sewer_find_exit")
+
+[node name="SewerExitToForest" type="Area2D" parent="." unique_id=1603240615]
+position = Vector2(5200, 435)
+script = ExtResource("6_transition")
+transition_id = "sewer_exit_to_forest"
+display_name = "Enter the Warfront"
+origin_map_id = "sewer"
+required_player_state = PackedStringArray("alive", "tutorial_exit_unlocked", "not_transition_locked")

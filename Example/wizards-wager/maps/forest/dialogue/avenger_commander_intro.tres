@@ -1,0 +1,86 @@
+[gd_resource type="Resource" script_class="DialogueConversation" format=3 uid="uid://bqp07pwp4jvhm"]
+
+[ext_resource type="Script" uid="uid://dq18rt3pcxilx" path="res://map_authoring/dialogue_conversation.gd" id="1"]
+[ext_resource type="Script" uid="uid://cdddsns4y2o6p" path="res://map_authoring/dialogue_node.gd" id="2"]
+[ext_resource type="Script" uid="uid://ddqm4e7jr8mwp" path="res://map_authoring/dialogue_choice.gd" id="3"]
+[ext_resource type="Script" uid="uid://crm11c1h4kgqr" path="res://map_authoring/story_action.gd" id="4"]
+[ext_resource type="Script" uid="uid://crf8psc5r5wju" path="res://map_authoring/story_condition.gd" id="4_dbamg"]
+
+[sub_resource type="Resource" id="set_met"]
+script = ExtResource("4")
+action_id = "set_commander_met"
+target_id = "avenger_commander_met"
+
+[sub_resource type="Resource" id="set_debt"]
+script = ExtResource("4")
+action_id = "set_debt_response"
+target_id = "avenger_oath_response"
+text_value = "debt"
+requires_confirmation = true
+
+[sub_resource type="Resource" id="play_intro_debt"]
+script = ExtResource("4")
+action_id = "play_avenger_intro_debt"
+action_type = "start_cinematic"
+target_id = "avenger_commander_audience"
+
+[sub_resource type="Resource" id="choice_debt"]
+script = ExtResource("3")
+choice_id = "vengeance_pays_debt"
+text = "Every fallen Avenger is a debt that must be paid."
+destination_node_id = "debt_response"
+requires_confirmation = true
+actions = Array[ExtResource("4")]([SubResource("set_met"), SubResource("set_debt"), SubResource("play_intro_debt")])
+
+[sub_resource type="Resource" id="set_end_cycle"]
+script = ExtResource("4")
+action_id = "set_end_cycle_response"
+target_id = "avenger_oath_response"
+text_value = "end_cycle"
+requires_confirmation = true
+
+[sub_resource type="Resource" id="play_intro_end"]
+script = ExtResource("4")
+action_id = "play_avenger_intro_end"
+action_type = "start_cinematic"
+target_id = "avenger_commander_audience"
+
+[sub_resource type="Resource" id="choice_end"]
+script = ExtResource("3")
+choice_id = "vengeance_must_end"
+text = "A debt that never ends is a chain. Someone must break it."
+destination_node_id = "end_response"
+requires_confirmation = true
+actions = Array[ExtResource("4")]([SubResource("set_met"), SubResource("set_end_cycle"), SubResource("play_intro_end")])
+
+[sub_resource type="Resource" id="start"]
+script = ExtResource("2")
+node_id = "start"
+speaker_npc_id = "avenger_commander"
+text = "You spilled blood beside us and earned this audience. Before I trust you with soldiers, tell me: what is vengeance?"
+editor_position = Vector2(40, 80)
+choices = Array[ExtResource("3")]([SubResource("choice_debt"), SubResource("choice_end")])
+
+[sub_resource type="Resource" id="debt_response"]
+script = ExtResource("2")
+node_id = "debt_response"
+speaker_npc_id = "avenger_commander"
+text = "Then remember every name. An Avenger who forgets the fallen has already betrayed them."
+editor_position = Vector2(470, 20)
+ends_conversation = true
+
+[sub_resource type="Resource" id="end_response"]
+script = ExtResource("2")
+node_id = "end_response"
+speaker_npc_id = "avenger_commander"
+text = "Bold words. Find the end of this chain without abandoning our dead, and I may follow you there."
+editor_position = Vector2(470, 180)
+ends_conversation = true
+
+[resource]
+script = ExtResource("1")
+conversation_id = "avenger_commander_intro"
+display_name = "Avenger Commander Audience"
+owning_map_id = "forest"
+starting_node_id = "start"
+nodes = Array[ExtResource("2")]([SubResource("start"), SubResource("debt_response"), SubResource("end_response")])

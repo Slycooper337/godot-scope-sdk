@@ -87,6 +87,7 @@ func _make_frame(title: String) -> PanelContainer:
 	var meta := Label.new()
 	meta.name = "Meta"
 	meta.visible = false
+	meta.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.add_child(meta)
 	var bars := VBoxContainer.new()
 	bars.name = "Bars"
@@ -194,9 +195,7 @@ func set_enemy_target(enemy: Node) -> void:
 	target_frame.visible = true
 	target_actions.visible = false
 	target_name_label.text = _enemy_name(enemy)
-	target_meta_label.text = "Level —  •  Enemy"
 	target_meta_label.visible = true
-	target_meta_label.text = "Enemy  •  %s" % ("Defeated" if bool(enemy.get("dying")) else "Hostile")
 	_update_enemy_target()
 
 func _process(_delta: float) -> void:
@@ -219,6 +218,35 @@ func _update_enemy_target() -> void:
 	target_mana.modulate = Color(0.55, 0.55, 0.6, 1.0)
 	target_stamina_text.text = "N/A"
 	target_mana_text.text = "N/A"
+	target_meta_label.text = _enemy_relationship_text(enemy_target)
+
+
+func _enemy_relationship_text(enemy: Node) -> String:
+	if bool(enemy.get("dying")):
+		return "Defeated"
+	var faction_id := str(enemy.get("faction_id"))
+	var relationship := str(enemy.get("relationship_to_player"))
+	if faction_id.is_empty():
+		faction_id = "enemy"
+	if relationship.is_empty():
+		relationship = "hostile"
+	var attack_value: Variant = enemy.get("attack_legal")
+	var attack_is_legal := true if attack_value == null else bool(attack_value)
+	var lines := PackedStringArray([
+		"%s - %s - %s" % [
+			faction_id.replace("_", " ").capitalize(),
+			relationship.replace("_", " ").capitalize(),
+			"Attack allowed" if attack_is_legal else "Attack blocked"
+		]
+	])
+	var reputation_value: Variant = enemy.get("reputation_effects")
+	if reputation_value is Dictionary and not (reputation_value as Dictionary).is_empty():
+		var effects: PackedStringArray = []
+		for effect_faction_value: Variant in (reputation_value as Dictionary).keys():
+			var amount := int((reputation_value as Dictionary)[effect_faction_value])
+			effects.append("%s %s%d" % [str(effect_faction_value).capitalize(), "+" if amount >= 0 else "", amount])
+		lines.append("On defeat: %s" % ", ".join(effects))
+	return "\n".join(lines)
 
 func _enemy_name(enemy: Node) -> String:
 	var visual_id := str(enemy.get("visual_id"))

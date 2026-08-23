@@ -171,10 +171,9 @@ func _request_unlocked(
 	if ScopeConfig.debug_logging():
 		print("[Scope] error=%s" % normalized_error)
 
-	return ScopeResponse.fail(
-		response_code,
-		normalized_error
-	)
+	var failure := ScopeResponse.fail(response_code, normalized_error)
+	failure.data = parsed
+	return failure
 
 
 func _build_url(endpoint: String) -> String:
@@ -220,4 +219,6 @@ func _request_raw_unlocked(method: HTTPClient.Method, endpoint: String, content_
 	var normalized_error := ScopeResponse.error_message(parsed_error, error_text)
 	if response_code == 401 or response_code == 403:
 		authentication_failed.emit(response_code, normalized_error)
-	return ScopeResponse.fail(response_code, normalized_error)
+	var failure := ScopeResponse.fail(response_code, normalized_error)
+	failure.data = parsed_error
+	return failure

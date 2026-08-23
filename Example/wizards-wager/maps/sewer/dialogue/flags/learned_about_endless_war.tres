@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="StoryFlagDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://map_authoring/story_flag_definition.gd" id="1_flag"]
+
+[resource]
+script = ExtResource("1_flag")
+flag_id = "learned_about_endless_war"
+display_name = "Learned About the Endless War"
+description = "The Sewer Guide explained why the Justice and Avenger Knights remain at war."
+category = "sewer"

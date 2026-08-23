@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="StoryFlagDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://map_authoring/story_flag_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+flag_id = "justice_commander_met"
+display_name = "Met the Justice Commander"
+description = "The player completed the first Justice commander audience."
+category = "faction_story"
+

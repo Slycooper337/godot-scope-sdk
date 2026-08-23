@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ConditionalConversation" format=3 uid="uid://dhsa74jmhj7pj"]
+
+[ext_resource type="Script" uid="uid://rbfjo4uu8rrs" path="res://map_authoring/conditional_conversation.gd" id="1"]
+[ext_resource type="Script" uid="uid://crf8psc5r5wju" path="res://map_authoring/story_condition.gd" id="2"]
+
+[sub_resource type="Resource" id="faction"]
+script = ExtResource("2")
+condition_id = "avenger_commander_repeat_faction"
+condition_type = "faction_is"
+target_id = "avenger"
+
+[sub_resource type="Resource" id="met"]
+script = ExtResource("2")
+condition_id = "avenger_commander_already_met"
+target_id = "avenger_commander_met"
+
+[resource]
+script = ExtResource("1")
+entry_id = "avenger_commander_repeat_entry"
+conversation_id = "avenger_commander_repeat"
+priority = 50
+conditions = Array[ExtResource("2")]([SubResource("faction"), SubResource("met")])

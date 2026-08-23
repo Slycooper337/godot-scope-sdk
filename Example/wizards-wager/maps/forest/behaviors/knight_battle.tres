@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CombatantBehaviorProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://map_authoring/combatant_behavior_profile.gd" id="1_profile"]
+
+[resource]
+script = ExtResource("1_profile")
+resource_name = "knight_battle"
+profile_id = "knight_battle"
+initial_state = "patrol"
+patrol_mode = "direction"
+patrol_direction = -1
+patrol_distance = 500.0
+aggro_distance = 360.0
+leash_distance = 900.0
+target_factions = ["justice", "avenger"]
+faction_reactions = {"justice": "attack_on_sight", "avenger": "attack_on_sight", "player": "ignore"}
+on_target_lost = "return_to_patrol"
+on_leash_exceeded = "return_home"

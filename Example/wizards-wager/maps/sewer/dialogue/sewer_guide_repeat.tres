@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="DialogueConversation" format=3 uid="uid://xmflwrkyvtta"]
+
+[ext_resource type="Script" uid="uid://dq18rt3pcxilx" path="res://map_authoring/dialogue_conversation.gd" id="1_conversation"]
+[ext_resource type="Script" uid="uid://crm11c1h4kgqr" path="res://map_authoring/story_action.gd" id="2_dx16b"]
+[ext_resource type="Script" uid="uid://cdddsns4y2o6p" path="res://map_authoring/dialogue_node.gd" id="2_node"]
+[ext_resource type="Script" uid="uid://ddqm4e7jr8mwp" path="res://map_authoring/dialogue_choice.gd" id="3_i6wnb"]
+[ext_resource type="Script" uid="uid://crf8psc5r5wju" path="res://map_authoring/story_condition.gd" id="4_h7ryj"]
+
+[sub_resource type="Resource" id="start_node"]
+script = ExtResource("2_node")
+node_id = "start"
+speaker_npc_id = "sewer_guide"
+text = "Keep moving through the tunnels. I will tell you what comes next when you return."
+editor_position = Vector2(60, 80)
+ends_conversation = true
+
+[resource]
+script = ExtResource("1_conversation")
+conversation_id = "sewer_guide_repeat"
+display_name = "Sewer Guide Repeat Greeting"
+owning_map_id = "sewer"
+starting_node_id = "start"
+nodes = Array[ExtResource("2_node")]([SubResource("start_node")])

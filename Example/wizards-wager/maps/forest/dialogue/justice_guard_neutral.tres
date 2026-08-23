@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="DialogueConversation" format=3 uid="uid://cc0xou6pvq3bv"]
+
+[ext_resource type="Script" uid="uid://dq18rt3pcxilx" path="res://map_authoring/dialogue_conversation.gd" id="1"]
+[ext_resource type="Script" uid="uid://cdddsns4y2o6p" path="res://map_authoring/dialogue_node.gd" id="2"]
+[ext_resource type="Script" uid="uid://crm11c1h4kgqr" path="res://map_authoring/story_action.gd" id="2_a51vq"]
+[ext_resource type="Script" uid="uid://ddqm4e7jr8mwp" path="res://map_authoring/dialogue_choice.gd" id="3_omxbu"]
+[ext_resource type="Script" uid="uid://crf8psc5r5wju" path="res://map_authoring/story_condition.gd" id="4_v84xi"]
+
+[sub_resource type="Resource" id="start"]
+script = ExtResource("2")
+node_id = "start"
+speaker_npc_id = "justice_starting_guard"
+text = "Stand clear, wanderer. Justice has no quarrel with you unless you make one. Aid our cause, and we may speak again."
+ends_conversation = true
+
+[resource]
+script = ExtResource("1")
+conversation_id = "justice_guard_neutral"
+display_name = "Justice Guard - Neutral"
+owning_map_id = "forest"
+starting_node_id = "start"
+nodes = Array[ExtResource("2")]([SubResource("start")])

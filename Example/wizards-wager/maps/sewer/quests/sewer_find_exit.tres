@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="QuestDefinition" format=3 uid="uid://cg476f2ik13ev"]
+
+[ext_resource type="Script" uid="uid://dl6r8dv0f0skn" path="res://map_authoring/quest_definition.gd" id="1_quest"]
+[ext_resource type="Script" uid="uid://h14c1mbftyl1" path="res://map_authoring/quest_stage.gd" id="2_stage"]
+
+[sub_resource type="Resource" id="exit_stage"]
+script = ExtResource("2_stage")
+stage_id = "enter_central_battlefield"
+objective_type = "use_transition"
+target_transition_id = "sewer_exit_to_forest"
+target_map_id = "forest"
+target_spawn_id = "central_battle_spawn"
+
+[resource]
+script = ExtResource("1_quest")
+quest_id = "sewer_find_exit"
+giver_npc_id = "sewer_guide"
+title = "Find the Exit"
+description = "Use the exit to reach the forest warfront."
+offer_text = "Take the ladder to the surface. Stay near the center until you understand the war you are walking into."
+prerequisite_quest_ids = PackedStringArray("sewer_deeper_threats")
+rewards = {
+"gold": 10,
+"xp": 20
+}
+stages = Array[ExtResource("2_stage")]([SubResource("exit_stage")])

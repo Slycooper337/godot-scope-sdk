@@ -1,0 +1,670 @@
+{
+  "archetypes": [
+    "zombie",
+    "goblin",
+    "skeleton",
+    "npc"
+  ],
+  "area_transitions": [
+    {
+      "destination": {
+        "map_id": "forest",
+        "spawn_id": "central_battle_spawn",
+        "world_id": "main_world"
+      },
+      "destination_spawn_id": "central_battle_spawn",
+      "display_name": "Enter the Warfront",
+      "one_way": true,
+      "origin_map_id": "sewer",
+      "origin_world_id": "main_world",
+      "position": {
+        "x": 5200.0,
+        "y": 435.0
+      },
+      "required_player_state": [
+        "alive",
+        "tutorial_exit_unlocked",
+        "not_transition_locked"
+      ],
+      "required_proximity": 96.0,
+      "transition_id": "sewer_exit_to_forest"
+    }
+  ],
+  "area_type": "tutorial_sewer",
+  "behavior_profiles": [
+    {
+      "aggro_distance": 360.0,
+      "faction_reactions": {
+
+      },
+      "initial_state": "patrol",
+      "leash_distance": 900.0,
+      "on_leash_exceeded": "return_home",
+      "on_target_lost": "return_to_patrol",
+      "patrol": {
+        "direction": -1,
+        "distance": 500.0,
+        "mode": "direction",
+        "waypoints": []
+      },
+      "profile_id": "sewer_enemy_patrol",
+      "target_archetypes": [],
+      "target_combatant_kinds": [
+        "player"
+      ],
+      "target_factions": [
+        "player"
+      ]
+    }
+  ],
+  "combatant_spawns": [
+    {
+      "aggro_distance": 360.0,
+      "archetype_id": "zombie",
+      "behavior_profile": {
+        "aggro_distance": 360.0,
+        "faction_reactions": {
+
+        },
+        "initial_state": "patrol",
+        "leash_distance": 900.0,
+        "on_leash_exceeded": "return_home",
+        "on_target_lost": "return_to_patrol",
+        "patrol": {
+          "direction": -1,
+          "distance": 500.0,
+          "mode": "direction",
+          "waypoints": []
+        },
+        "profile_id": "sewer_enemy_patrol",
+        "target_archetypes": [],
+        "target_combatant_kinds": [
+          "player"
+        ],
+        "target_factions": [
+          "player"
+        ]
+      },
+      "behavior_profile_id": "sewer_enemy_patrol",
+      "bounds": {
+        "x": 900.0,
+        "y": 80.0
+      },
+      "combatant_kind": "npc",
+      "faction_id": "enemy",
+      "hostile_archetypes": [],
+      "hostile_factions": [],
+      "leash_distance": 900.0,
+      "placement_mode": "random_in_bounds",
+      "position": {
+        "x": 1500.0,
+        "y": 435.0
+      },
+      "respawn_delay_seconds": 30,
+      "spawn_count": 3,
+      "spawn_id": "sewer_zombies",
+      "stat_overrides": {
+
+      },
+      "surface_id": "sewer_floor",
+      "visual_id": "zombie"
+    },
+    {
+      "aggro_distance": 360.0,
+      "archetype_id": "goblin",
+      "behavior_profile": {
+        "aggro_distance": 360.0,
+        "faction_reactions": {
+
+        },
+        "initial_state": "patrol",
+        "leash_distance": 900.0,
+        "on_leash_exceeded": "return_home",
+        "on_target_lost": "return_to_patrol",
+        "patrol": {
+          "direction": -1,
+          "distance": 500.0,
+          "mode": "direction",
+          "waypoints": []
+        },
+        "profile_id": "sewer_enemy_patrol",
+        "target_archetypes": [],
+        "target_combatant_kinds": [
+          "player"
+        ],
+        "target_factions": [
+          "player"
+        ]
+      },
+      "behavior_profile_id": "sewer_enemy_patrol",
+      "bounds": {
+        "x": 900.0,
+        "y": 80.0
+      },
+      "combatant_kind": "npc",
+      "faction_id": "enemy",
+      "hostile_archetypes": [],
+      "hostile_factions": [],
+      "leash_distance": 900.0,
+      "placement_mode": "random_in_bounds",
+      "position": {
+        "x": 3000.0,
+        "y": 435.0
+      },
+      "respawn_delay_seconds": 30,
+      "spawn_count": 3,
+      "spawn_id": "sewer_goblins",
+      "stat_overrides": {
+
+      },
+      "surface_id": "sewer_floor",
+      "visual_id": "goblin"
+    },
+    {
+      "aggro_distance": 360.0,
+      "archetype_id": "skeleton",
+      "behavior_profile": {
+        "aggro_distance": 360.0,
+        "faction_reactions": {
+
+        },
+        "initial_state": "patrol",
+        "leash_distance": 900.0,
+        "on_leash_exceeded": "return_home",
+        "on_target_lost": "return_to_patrol",
+        "patrol": {
+          "direction": -1,
+          "distance": 500.0,
+          "mode": "direction",
+          "waypoints": []
+        },
+        "profile_id": "sewer_enemy_patrol",
+        "target_archetypes": [],
+        "target_combatant_kinds": [
+          "player"
+        ],
+        "target_factions": [
+          "player"
+        ]
+      },
+      "behavior_profile_id": "sewer_enemy_patrol",
+      "bounds": {
+        "x": 900.0,
+        "y": 80.0
+      },
+      "combatant_kind": "npc",
+      "faction_id": "enemy",
+      "hostile_archetypes": [],
+      "hostile_factions": [],
+      "leash_distance": 900.0,
+      "placement_mode": "random_in_bounds",
+      "position": {
+        "x": 3900.0,
+        "y": 435.0
+      },
+      "respawn_delay_seconds": 30,
+      "spawn_count": 3,
+      "spawn_id": "sewer_skeletons",
+      "stat_overrides": {
+
+      },
+      "surface_id": "sewer_floor",
+      "visual_id": "skeleton"
+    }
+  ],
+  "coordinate_system": "godot_2d",
+  "dialogue_conversations": [
+    {
+      "conversation_id": "sewer_guide_intro",
+      "default_cinematic_id": "",
+      "display_name": "Sewer Guide Introduction",
+      "fallback_text": "They have nothing to say right now.",
+      "lock_local_input": true,
+      "nodes": [
+        {
+          "actions": [],
+          "automatic_next_node_id": "",
+          "choices": [
+            {
+              "actions": [],
+              "choice_id": "ask_about_war",
+              "condition_logic": "all",
+              "conditions": [],
+              "destination_node_id": "war_explanation",
+              "disabled_explanation": "",
+              "requires_confirmation": false,
+              "text": "What is happening on the surface?"
+            },
+            {
+              "actions": [
+                {
+                  "action_id": "remember_meeting",
+                  "action_type": "set_flag",
+                  "amount": 0,
+                  "requires_confirmation": false,
+                  "secondary_id": "",
+                  "target_id": "met_sewer_guide",
+                  "target_map_id": "",
+                  "target_spawn_id": "",
+                  "text_value": ""
+                },
+                {
+                  "action_id": "offer_first_hunt",
+                  "action_type": "offer_quest",
+                  "amount": 0,
+                  "requires_confirmation": false,
+                  "secondary_id": "",
+                  "target_id": "sewer_first_hunt",
+                  "target_map_id": "",
+                  "target_spawn_id": "",
+                  "text_value": ""
+                }
+              ],
+              "choice_id": "ready_to_help",
+              "condition_logic": "all",
+              "conditions": [],
+              "destination_node_id": "first_task",
+              "disabled_explanation": "",
+              "requires_confirmation": false,
+              "text": "I can handle myself. What needs killing?"
+            }
+          ],
+          "cinematic_cue_id": "",
+          "cinematic_id": "",
+          "condition_logic": "all",
+          "conditions": [],
+          "editor_position": {
+            "x": 40.0,
+            "y": 80.0
+          },
+          "ends_conversation": false,
+          "expression_id": "",
+          "intentional_loop": false,
+          "node_id": "start",
+          "portrait_id": "",
+          "speaker_name_override": "",
+          "speaker_npc_id": "sewer_guide",
+          "text": "Easy now. The tunnels are crawling, and the war above is worse. You have questions, but first you need to survive."
+        },
+        {
+          "actions": [],
+          "automatic_next_node_id": "",
+          "choices": [
+            {
+              "actions": [
+                {
+                  "action_id": "remember_war_explanation",
+                  "action_type": "set_flag",
+                  "amount": 0,
+                  "requires_confirmation": false,
+                  "secondary_id": "",
+                  "target_id": "learned_about_endless_war",
+                  "target_map_id": "",
+                  "target_spawn_id": "",
+                  "text_value": ""
+                },
+                {
+                  "action_id": "remember_meeting",
+                  "action_type": "set_flag",
+                  "amount": 0,
+                  "requires_confirmation": false,
+                  "secondary_id": "",
+                  "target_id": "met_sewer_guide",
+                  "target_map_id": "",
+                  "target_spawn_id": "",
+                  "text_value": ""
+                },
+                {
+                  "action_id": "offer_first_hunt",
+                  "action_type": "offer_quest",
+                  "amount": 0,
+                  "requires_confirmation": false,
+                  "secondary_id": "",
+                  "target_id": "sewer_first_hunt",
+                  "target_map_id": "",
+                  "target_spawn_id": "",
+                  "text_value": ""
+                }
+              ],
+              "choice_id": "understand_war",
+              "condition_logic": "all",
+              "conditions": [],
+              "destination_node_id": "first_task",
+              "disabled_explanation": "",
+              "requires_confirmation": false,
+              "text": "Justice and vengeance feeding each other forever. I understand."
+            }
+          ],
+          "cinematic_cue_id": "",
+          "cinematic_id": "",
+          "condition_logic": "all",
+          "conditions": [],
+          "editor_position": {
+            "x": 360.0,
+            "y": 20.0
+          },
+          "ends_conversation": false,
+          "expression_id": "",
+          "intentional_loop": false,
+          "node_id": "war_explanation",
+          "portrait_id": "",
+          "speaker_name_override": "",
+          "speaker_npc_id": "sewer_guide",
+          "text": "The Justice Knights kill to answer every fallen soldier. The Avenger Knights kill for the same reason and call it vengeance. Every answer creates another death to answer."
+        },
+        {
+          "actions": [],
+          "automatic_next_node_id": "",
+          "choices": [],
+          "cinematic_cue_id": "",
+          "cinematic_id": "",
+          "condition_logic": "all",
+          "conditions": [],
+          "editor_position": {
+            "x": 700.0,
+            "y": 100.0
+          },
+          "ends_conversation": true,
+          "expression_id": "",
+          "intentional_loop": false,
+          "node_id": "first_task",
+          "portrait_id": "",
+          "speaker_name_override": "",
+          "speaker_npc_id": "sewer_guide",
+          "text": "Start with the dead wandering these tunnels. Put down three Zombies, then come back to me."
+        }
+      ],
+      "owning_map_id": "sewer",
+      "player_may_exit": true,
+      "starting_node_id": "start"
+    },
+    {
+      "conversation_id": "sewer_guide_repeat",
+      "default_cinematic_id": "",
+      "display_name": "Sewer Guide Repeat Greeting",
+      "fallback_text": "They have nothing to say right now.",
+      "lock_local_input": true,
+      "nodes": [
+        {
+          "actions": [],
+          "automatic_next_node_id": "",
+          "choices": [],
+          "cinematic_cue_id": "",
+          "cinematic_id": "",
+          "condition_logic": "all",
+          "conditions": [],
+          "editor_position": {
+            "x": 60.0,
+            "y": 80.0
+          },
+          "ends_conversation": true,
+          "expression_id": "",
+          "intentional_loop": false,
+          "node_id": "start",
+          "portrait_id": "",
+          "speaker_name_override": "",
+          "speaker_npc_id": "sewer_guide",
+          "text": "Keep moving through the tunnels. I will tell you what comes next when you return."
+        }
+      ],
+      "owning_map_id": "sewer",
+      "player_may_exit": true,
+      "starting_node_id": "start"
+    }
+  ],
+  "display_name": "Sewers Beneath the Warfront",
+  "enterable": true,
+  "factions": [
+    "player",
+    "enemy",
+    "neutral"
+  ],
+  "map_id": "sewer",
+  "physics_surfaces": [
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": false,
+      "position": {
+        "x": 4800.0,
+        "y": 678.5
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 9600.0,
+        "y": 329.0
+      },
+      "surface_id": "sewer_floor",
+      "surface_role": "floor"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": false,
+      "position": {
+        "x": 2200.0,
+        "y": 250.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 900.0,
+        "y": 16.0
+      },
+      "surface_id": "sewer_platform",
+      "surface_role": "platform"
+    }
+  ],
+  "player_spawns": [
+    {
+      "position": {
+        "x": 400.0,
+        "y": 435.0
+      },
+      "spawn_id": "player_start",
+      "surface_id": "sewer_floor"
+    },
+    {
+      "position": {
+        "x": 400.0,
+        "y": 435.0
+      },
+      "spawn_id": "sewer_return",
+      "surface_id": "sewer_floor"
+    }
+  ],
+  "quest_givers": [
+    {
+      "ambient_lines": [
+        "Keep your guard up. The dead do not tire.",
+        "The war above is louder, but these tunnels are no safer."
+      ],
+      "archetype_id": "npc",
+      "combatant_kind": "npc",
+      "conditional_conversations": [
+        {
+          "condition_logic": "all",
+          "conditions": [
+            {
+              "comparison": "equals",
+              "condition_id": "not_met_guide",
+              "condition_type": "flag_is_not_set",
+              "negated": false,
+              "number_value": 0,
+              "quantity": 1,
+              "secondary_id": "",
+              "target_id": "met_sewer_guide",
+              "text_value": ""
+            }
+          ],
+          "conversation_id": "sewer_guide_intro",
+          "entry_id": "sewer_guide_first_meeting",
+          "one_time": true,
+          "priority": 100
+        }
+      ],
+      "conversation_priority": 0,
+      "default_conversation_id": "sewer_guide_repeat",
+      "display_name": "Sewer Guide",
+      "faction_id": "neutral",
+      "interaction_radius": 96.0,
+      "npc_id": "sewer_guide",
+      "one_time_greeting": "",
+      "position": {
+        "x": 800.0,
+        "y": 435.0
+      },
+      "quest_ids": [
+        "sewer_first_hunt",
+        "sewer_deeper_threats",
+        "sewer_find_exit"
+      ],
+      "repeat_greeting": "",
+      "stat_overrides": {
+
+      },
+      "surface_id": "sewer_floor",
+      "visual_id": "default_character"
+    }
+  ],
+  "quests": [
+    {
+      "completion_text": "Good. You can handle yourself, but the deeper tunnels are worse.",
+      "description": "Clear three zombies from the sewers, then report back.",
+      "giver_npc_id": "sewer_guide",
+      "offer_text": "The dead keep crawling in through the lower tunnels. Put down three Zombies and come back alive.",
+      "prerequisite_quest_ids": [],
+      "quest_id": "sewer_first_hunt",
+      "repeatable": false,
+      "required_committed_faction_id": "",
+      "rewards": {
+        "gold": 10,
+        "xp": 20
+      },
+      "stages": [
+        {
+          "objective_type": "kill",
+          "required_count": 3,
+          "stage_id": "kill_sewer_zombies",
+          "target_archetype_id": "zombie",
+          "target_map_id": "",
+          "target_npc_id": "",
+          "target_spawn_id": "",
+          "target_transition_id": ""
+        },
+        {
+          "objective_type": "talk",
+          "required_count": 1,
+          "stage_id": "return_after_zombies",
+          "target_archetype_id": "",
+          "target_map_id": "",
+          "target_npc_id": "sewer_guide",
+          "target_spawn_id": "",
+          "target_transition_id": ""
+        }
+      ],
+      "title": "First Hunt"
+    },
+    {
+      "completion_text": "The surface route is open. What waits above is worse than anything down here—and it can choose whom to hate.",
+      "description": "Drive back three goblins and three skeletons, then return.",
+      "giver_npc_id": "sewer_guide",
+      "offer_text": "Goblins are stripping the old passages, and Skeletons guard the way out. Clear three of each.",
+      "prerequisite_quest_ids": [
+        "sewer_first_hunt"
+      ],
+      "quest_id": "sewer_deeper_threats",
+      "repeatable": false,
+      "required_committed_faction_id": "",
+      "rewards": {
+        "gold": 20,
+        "xp": 40
+      },
+      "stages": [
+        {
+          "objective_type": "kill",
+          "required_count": 3,
+          "stage_id": "kill_sewer_goblins",
+          "target_archetype_id": "goblin",
+          "target_map_id": "",
+          "target_npc_id": "",
+          "target_spawn_id": "",
+          "target_transition_id": ""
+        },
+        {
+          "objective_type": "kill",
+          "required_count": 3,
+          "stage_id": "kill_sewer_skeletons",
+          "target_archetype_id": "skeleton",
+          "target_map_id": "",
+          "target_npc_id": "",
+          "target_spawn_id": "",
+          "target_transition_id": ""
+        },
+        {
+          "objective_type": "talk",
+          "required_count": 1,
+          "stage_id": "return_after_deeper_threats",
+          "target_archetype_id": "zombie",
+          "target_map_id": "",
+          "target_npc_id": "sewer_guide",
+          "target_spawn_id": "",
+          "target_transition_id": ""
+        }
+      ],
+      "title": "Deeper Threats"
+    },
+    {
+      "completion_text": "",
+      "description": "Use the exit to reach the forest warfront.",
+      "giver_npc_id": "sewer_guide",
+      "offer_text": "Take the ladder to the surface. Stay near the center until you understand the war you are walking into.",
+      "prerequisite_quest_ids": [
+        "sewer_deeper_threats"
+      ],
+      "quest_id": "sewer_find_exit",
+      "repeatable": false,
+      "required_committed_faction_id": "",
+      "rewards": {
+        "gold": 10,
+        "xp": 20
+      },
+      "stages": [
+        {
+          "objective_type": "use_transition",
+          "required_count": 1,
+          "stage_id": "enter_central_battlefield",
+          "target_archetype_id": "zombie",
+          "target_map_id": "forest",
+          "target_npc_id": "",
+          "target_spawn_id": "central_battle_spawn",
+          "target_transition_id": "sewer_exit_to_forest"
+        }
+      ],
+      "title": "Find the Exit"
+    }
+  ],
+  "story_flags": [
+    {
+      "category": "sewer",
+      "default_value": false,
+      "description": "The player completed the Sewer Guide's first story conversation.",
+      "display_name": "Met the Sewer Guide",
+      "flag_id": "met_sewer_guide",
+      "value_type": "boolean",
+      "visible_in_development": true
+    },
+    {
+      "category": "sewer",
+      "default_value": false,
+      "description": "The Sewer Guide explained why the Justice and Avenger Knights remain at war.",
+      "display_name": "Learned About the Endless War",
+      "flag_id": "learned_about_endless_war",
+      "value_type": "boolean",
+      "visible_in_development": true
+    }
+  ],
+  "version": 1,
+  "world_id": "main_world"
+}

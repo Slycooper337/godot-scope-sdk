@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="CinematicSequence" format=3 uid="uid://g32ot5ay482h"]
+
+[ext_resource type="Script" uid="uid://bt2oe8b6oq2ai" path="res://map_authoring/cinematic_sequence.gd" id="1"]
+[ext_resource type="Script" uid="uid://dktltlfc1s1lo" path="res://map_authoring/cinematic_cue.gd" id="2"]
+
+[sub_resource type="Resource" id="lock"]
+script = ExtResource("2")
+cue_id = "lock"
+cue_type = "lock_input"
+duration_seconds = 0.0
+
+[sub_resource type="Resource" id="save"]
+script = ExtResource("2")
+cue_id = "save"
+cue_type = "save_camera"
+duration_seconds = 0.0
+
+[sub_resource type="Resource" id="pan"]
+script = ExtResource("2")
+cue_id = "pan_to_command"
+cue_type = "pan_to_marker"
+duration_seconds = 1.2
+marker_id = "avenger_command_view"
+zoom = Vector2(0.85, 0.85)
+
+[sub_resource type="Resource" id="title"]
+script = ExtResource("2")
+cue_id = "title"
+cue_type = "title_card"
+duration_seconds = 2.0
+text = "THE AVENGER LINE"
+
+[sub_resource type="Resource" id="restore"]
+script = ExtResource("2")
+cue_id = "restore"
+cue_type = "restore_camera"
+duration_seconds = 0.8
+
+[sub_resource type="Resource" id="unlock"]
+script = ExtResource("2")
+cue_id = "unlock"
+cue_type = "unlock_input"
+duration_seconds = 0.0
+
+[resource]
+script = ExtResource("1")
+cinematic_id = "avenger_commander_audience"
+display_name = "Avenger Commander Audience"
+owning_map_id = "forest"
+cues = Array[ExtResource("2")]([SubResource("lock"), SubResource("save"), SubResource("pan"), SubResource("title"), SubResource("restore"), SubResource("unlock")])

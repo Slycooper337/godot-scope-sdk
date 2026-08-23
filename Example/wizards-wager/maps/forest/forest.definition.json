@@ -1,0 +1,2328 @@
+{
+  "archetypes": [
+    "zombie",
+    "goblin",
+    "skeleton",
+    "justice_knight",
+    "avenger_knight",
+    "npc"
+  ],
+  "area_transitions": [
+    {
+      "destination": {
+        "map_id": "sewer",
+        "spawn_id": "sewer_return",
+        "world_id": "main_world"
+      },
+      "destination_spawn_id": "sewer_return",
+      "display_name": "Return to the Sewers",
+      "one_way": true,
+      "origin_map_id": "forest",
+      "origin_world_id": "main_world",
+      "position": {
+        "x": 500.0,
+        "y": 435.0
+      },
+      "required_player_state": [
+        "alive",
+        "not_transition_locked"
+      ],
+      "required_proximity": 96.0,
+      "transition_id": "forest_entrance_to_sewer"
+    }
+  ],
+  "area_type": "main_war",
+  "behavior_profiles": [
+    {
+      "aggro_distance": 360.0,
+      "faction_reactions": {
+
+      },
+      "initial_state": "patrol",
+      "leash_distance": 900.0,
+      "on_leash_exceeded": "return_home",
+      "on_target_lost": "return_to_patrol",
+      "patrol": {
+        "direction": -1,
+        "distance": 500.0,
+        "mode": "direction",
+        "waypoints": []
+      },
+      "profile_id": "forest_enemy_patrol",
+      "target_archetypes": [],
+      "target_combatant_kinds": [
+        "player"
+      ],
+      "target_factions": [
+        "player"
+      ]
+    },
+    {
+      "aggro_distance": 360.0,
+      "faction_reactions": {
+        "avenger": "attack_on_sight",
+        "player": "ignore"
+      },
+      "initial_state": "patrol",
+      "leash_distance": 900.0,
+      "on_leash_exceeded": "return_home",
+      "on_target_lost": "return_to_patrol",
+      "patrol": {
+        "direction": -1,
+        "distance": 500.0,
+        "mode": "direction",
+        "waypoints": []
+      },
+      "profile_id": "justice_knight_battle",
+      "target_archetypes": [],
+      "target_combatant_kinds": [
+        "npc"
+      ],
+      "target_factions": [
+        "avenger"
+      ]
+    },
+    {
+      "aggro_distance": 360.0,
+      "faction_reactions": {
+        "justice": "attack_on_sight",
+        "player": "ignore"
+      },
+      "initial_state": "patrol",
+      "leash_distance": 900.0,
+      "on_leash_exceeded": "return_home",
+      "on_target_lost": "return_to_patrol",
+      "patrol": {
+        "direction": 1,
+        "distance": 500.0,
+        "mode": "direction",
+        "waypoints": []
+      },
+      "profile_id": "avenger_knight_battle",
+      "target_archetypes": [],
+      "target_combatant_kinds": [
+        "npc"
+      ],
+      "target_factions": [
+        "justice"
+      ]
+    }
+  ],
+  "cinematic_markers": [
+    {
+      "camera_zoom": {
+        "x": 0.850000023841858,
+        "y": 0.850000023841858
+      },
+      "display_name": "Justice Command View",
+      "facing": "unchanged",
+      "framing_size": {
+        "x": 640.0,
+        "y": 360.0
+      },
+      "marker_id": "justice_command_view",
+      "position": {
+        "x": 10100.0,
+        "y": -4038.0
+      }
+    },
+    {
+      "camera_zoom": {
+        "x": 0.850000023841858,
+        "y": 0.850000023841858
+      },
+      "display_name": "Avenger Command View",
+      "facing": "unchanged",
+      "framing_size": {
+        "x": 640.0,
+        "y": 360.0
+      },
+      "marker_id": "avenger_command_view",
+      "position": {
+        "x": 3400.0,
+        "y": -4038.0
+      }
+    }
+  ],
+  "cinematic_sequences": [
+    {
+      "cinematic_id": "justice_commander_audience",
+      "cues": [
+        {
+          "animation_id": "",
+          "cue_id": "lock",
+          "cue_type": "lock_input",
+          "duration_seconds": 0.0,
+          "marker_id": "",
+          "npc_id": "",
+          "skippable": true,
+          "sound_path": "",
+          "text": "",
+          "zoom": {
+            "x": 1.0,
+            "y": 1.0
+          }
+        },
+        {
+          "animation_id": "",
+          "cue_id": "save",
+          "cue_type": "save_camera",
+          "duration_seconds": 0.0,
+          "marker_id": "",
+          "npc_id": "",
+          "skippable": true,
+          "sound_path": "",
+          "text": "",
+          "zoom": {
+            "x": 1.0,
+            "y": 1.0
+          }
+        },
+        {
+          "animation_id": "",
+          "cue_id": "pan_to_command",
+          "cue_type": "pan_to_marker",
+          "duration_seconds": 1.2,
+          "marker_id": "justice_command_view",
+          "npc_id": "",
+          "skippable": true,
+          "sound_path": "",
+          "text": "",
+          "zoom": {
+            "x": 0.850000023841858,
+            "y": 0.850000023841858
+          }
+        },
+        {
+          "animation_id": "",
+          "cue_id": "title",
+          "cue_type": "title_card",
+          "duration_seconds": 2.0,
+          "marker_id": "",
+          "npc_id": "",
+          "skippable": true,
+          "sound_path": "",
+          "text": "THE JUSTICE LINE",
+          "zoom": {
+            "x": 1.0,
+            "y": 1.0
+          }
+        },
+        {
+          "animation_id": "",
+          "cue_id": "restore",
+          "cue_type": "restore_camera",
+          "duration_seconds": 0.8,
+          "marker_id": "",
+          "npc_id": "",
+          "skippable": true,
+          "sound_path": "",
+          "text": "",
+          "zoom": {
+            "x": 1.0,
+            "y": 1.0
+          }
+        },
+        {
+          "animation_id": "",
+          "cue_id": "unlock",
+          "cue_type": "unlock_input",
+          "duration_seconds": 0.0,
+          "marker_id": "",
+          "npc_id": "",
+          "skippable": true,
+          "sound_path": "",
+          "text": "",
+          "zoom": {
+            "x": 1.0,
+            "y": 1.0
+          }
+        }
+      ],
+      "display_name": "Justice Commander Audience",
+      "owning_map_id": "forest",
+      "restore_camera_on_end": true,
+      "restore_input_on_end": true,
+      "skippable": true
+    },
+    {
+      "cinematic_id": "avenger_commander_audience",
+      "cues": [
+        {
+          "animation_id": "",
+          "cue_id": "lock",
+          "cue_type": "lock_input",
+          "duration_seconds": 0.0,
+          "marker_id": "",
+          "npc_id": "",
+          "skippable": true,
+          "sound_path": "",
+          "text": "",
+          "zoom": {
+            "x": 1.0,
+            "y": 1.0
+          }
+        },
+        {
+          "animation_id": "",
+          "cue_id": "save",
+          "cue_type": "save_camera",
+          "duration_seconds": 0.0,
+          "marker_id": "",
+          "npc_id": "",
+          "skippable": true,
+          "sound_path": "",
+          "text": "",
+          "zoom": {
+            "x": 1.0,
+            "y": 1.0
+          }
+        },
+        {
+          "animation_id": "",
+          "cue_id": "pan_to_command",
+          "cue_type": "pan_to_marker",
+          "duration_seconds": 1.2,
+          "marker_id": "avenger_command_view",
+          "npc_id": "",
+          "skippable": true,
+          "sound_path": "",
+          "text": "",
+          "zoom": {
+            "x": 0.850000023841858,
+            "y": 0.850000023841858
+          }
+        },
+        {
+          "animation_id": "",
+          "cue_id": "title",
+          "cue_type": "title_card",
+          "duration_seconds": 2.0,
+          "marker_id": "",
+          "npc_id": "",
+          "skippable": true,
+          "sound_path": "",
+          "text": "THE AVENGER LINE",
+          "zoom": {
+            "x": 1.0,
+            "y": 1.0
+          }
+        },
+        {
+          "animation_id": "",
+          "cue_id": "restore",
+          "cue_type": "restore_camera",
+          "duration_seconds": 0.8,
+          "marker_id": "",
+          "npc_id": "",
+          "skippable": true,
+          "sound_path": "",
+          "text": "",
+          "zoom": {
+            "x": 1.0,
+            "y": 1.0
+          }
+        },
+        {
+          "animation_id": "",
+          "cue_id": "unlock",
+          "cue_type": "unlock_input",
+          "duration_seconds": 0.0,
+          "marker_id": "",
+          "npc_id": "",
+          "skippable": true,
+          "sound_path": "",
+          "text": "",
+          "zoom": {
+            "x": 1.0,
+            "y": 1.0
+          }
+        }
+      ],
+      "display_name": "Avenger Commander Audience",
+      "owning_map_id": "forest",
+      "restore_camera_on_end": true,
+      "restore_input_on_end": true,
+      "skippable": true
+    }
+  ],
+  "combatant_spawns": [
+    {
+      "aggro_distance": 360.0,
+      "archetype_id": "zombie",
+      "behavior_profile": {
+        "aggro_distance": 360.0,
+        "faction_reactions": {
+
+        },
+        "initial_state": "patrol",
+        "leash_distance": 900.0,
+        "on_leash_exceeded": "return_home",
+        "on_target_lost": "return_to_patrol",
+        "patrol": {
+          "direction": -1,
+          "distance": 500.0,
+          "mode": "direction",
+          "waypoints": []
+        },
+        "profile_id": "forest_enemy_patrol",
+        "target_archetypes": [],
+        "target_combatant_kinds": [
+          "player"
+        ],
+        "target_factions": [
+          "player"
+        ]
+      },
+      "behavior_profile_id": "forest_enemy_patrol",
+      "bounds": {
+        "x": 2109.5,
+        "y": 336.0
+      },
+      "combatant_kind": "npc",
+      "faction_id": "enemy",
+      "hostile_archetypes": [],
+      "hostile_factions": [],
+      "leash_distance": 900.0,
+      "placement_mode": "random_in_bounds",
+      "position": {
+        "x": 2220.0,
+        "y": 290.0
+      },
+      "respawn_delay_seconds": 30,
+      "spawn_count": 1,
+      "spawn_id": "enemy_spawn_area_1",
+      "stat_overrides": {
+
+      },
+      "surface_id": "ground_main",
+      "visual_id": "zombie"
+    },
+    {
+      "aggro_distance": 360.0,
+      "archetype_id": "goblin",
+      "behavior_profile": {
+        "aggro_distance": 360.0,
+        "faction_reactions": {
+
+        },
+        "initial_state": "patrol",
+        "leash_distance": 900.0,
+        "on_leash_exceeded": "return_home",
+        "on_target_lost": "return_to_patrol",
+        "patrol": {
+          "direction": -1,
+          "distance": 500.0,
+          "mode": "direction",
+          "waypoints": []
+        },
+        "profile_id": "forest_enemy_patrol",
+        "target_archetypes": [],
+        "target_combatant_kinds": [
+          "player"
+        ],
+        "target_factions": [
+          "player"
+        ]
+      },
+      "behavior_profile_id": "forest_enemy_patrol",
+      "bounds": {
+        "x": 12591.0,
+        "y": 90.0
+      },
+      "combatant_kind": "npc",
+      "faction_id": "enemy",
+      "hostile_archetypes": [],
+      "hostile_factions": [],
+      "leash_distance": 900.0,
+      "placement_mode": "random_in_bounds",
+      "position": {
+        "x": 10283.0,
+        "y": 453.0
+      },
+      "respawn_delay_seconds": 30,
+      "spawn_count": 1,
+      "spawn_id": "enemy_spawn_area_2",
+      "stat_overrides": {
+
+      },
+      "surface_id": "ground_main",
+      "visual_id": "goblin"
+    },
+    {
+      "aggro_distance": 360.0,
+      "archetype_id": "skeleton",
+      "behavior_profile": {
+        "aggro_distance": 360.0,
+        "faction_reactions": {
+
+        },
+        "initial_state": "patrol",
+        "leash_distance": 900.0,
+        "on_leash_exceeded": "return_home",
+        "on_target_lost": "return_to_patrol",
+        "patrol": {
+          "direction": -1,
+          "distance": 500.0,
+          "mode": "direction",
+          "waypoints": []
+        },
+        "profile_id": "forest_enemy_patrol",
+        "target_archetypes": [],
+        "target_combatant_kinds": [
+          "player"
+        ],
+        "target_factions": [
+          "player"
+        ]
+      },
+      "behavior_profile_id": "forest_enemy_patrol",
+      "bounds": {
+        "x": 8912.0,
+        "y": 78.0
+      },
+      "combatant_kind": "npc",
+      "faction_id": "enemy",
+      "hostile_archetypes": [],
+      "hostile_factions": [],
+      "leash_distance": 900.0,
+      "placement_mode": "random_in_bounds",
+      "position": {
+        "x": 11821.0,
+        "y": -1675.0
+      },
+      "respawn_delay_seconds": 30,
+      "spawn_count": 20,
+      "spawn_id": "enemy_spawn_area_3",
+      "stat_overrides": {
+
+      },
+      "surface_id": "ground_3",
+      "visual_id": "skeleton"
+    },
+    {
+      "aggro_distance": 360.0,
+      "archetype_id": "justice_knight",
+      "behavior_profile": {
+        "aggro_distance": 360.0,
+        "faction_reactions": {
+          "avenger": "attack_on_sight",
+          "player": "ignore"
+        },
+        "initial_state": "patrol",
+        "leash_distance": 900.0,
+        "on_leash_exceeded": "return_home",
+        "on_target_lost": "return_to_patrol",
+        "patrol": {
+          "direction": -1,
+          "distance": 500.0,
+          "mode": "direction",
+          "waypoints": []
+        },
+        "profile_id": "justice_knight_battle",
+        "target_archetypes": [],
+        "target_combatant_kinds": [
+          "npc"
+        ],
+        "target_factions": [
+          "avenger"
+        ]
+      },
+      "behavior_profile_id": "justice_knight_battle",
+      "bounds": {
+        "x": 8912.0,
+        "y": 78.0
+      },
+      "combatant_kind": "npc",
+      "faction_id": "justice",
+      "hostile_archetypes": [],
+      "hostile_factions": [],
+      "leash_distance": 900.0,
+      "placement_mode": "random_in_bounds",
+      "position": {
+        "x": 9743.0,
+        "y": -4038.0
+      },
+      "respawn_delay_seconds": 8,
+      "spawn_count": 1,
+      "spawn_id": "justice_knights_spawn",
+      "stat_overrides": {
+
+      },
+      "surface_id": "justice_ground",
+      "visual_id": "justice_knight"
+    },
+    {
+      "aggro_distance": 360.0,
+      "archetype_id": "avenger_knight",
+      "behavior_profile": {
+        "aggro_distance": 360.0,
+        "faction_reactions": {
+          "justice": "attack_on_sight",
+          "player": "ignore"
+        },
+        "initial_state": "patrol",
+        "leash_distance": 900.0,
+        "on_leash_exceeded": "return_home",
+        "on_target_lost": "return_to_patrol",
+        "patrol": {
+          "direction": 1,
+          "distance": 500.0,
+          "mode": "direction",
+          "waypoints": []
+        },
+        "profile_id": "avenger_knight_battle",
+        "target_archetypes": [],
+        "target_combatant_kinds": [
+          "npc"
+        ],
+        "target_factions": [
+          "justice"
+        ]
+      },
+      "behavior_profile_id": "avenger_knight_battle",
+      "bounds": {
+        "x": 8912.0,
+        "y": 78.0
+      },
+      "combatant_kind": "npc",
+      "faction_id": "avenger",
+      "hostile_archetypes": [],
+      "hostile_factions": [],
+      "leash_distance": 900.0,
+      "placement_mode": "random_in_bounds",
+      "position": {
+        "x": 3382.0,
+        "y": -4038.0
+      },
+      "respawn_delay_seconds": 8,
+      "spawn_count": 1,
+      "spawn_id": "avenger_knights_spawn",
+      "stat_overrides": {
+
+      },
+      "surface_id": "avenger_ground",
+      "visual_id": "avenger_knight"
+    }
+  ],
+  "coordinate_system": "godot_2d",
+  "dialogue_conversations": [
+    {
+      "conversation_id": "justice_guard_neutral",
+      "default_cinematic_id": "",
+      "display_name": "Justice Guard - Neutral",
+      "fallback_text": "They have nothing to say right now.",
+      "lock_local_input": true,
+      "nodes": [
+        {
+          "actions": [],
+          "automatic_next_node_id": "",
+          "choices": [],
+          "cinematic_cue_id": "",
+          "cinematic_id": "",
+          "condition_logic": "all",
+          "conditions": [],
+          "editor_position": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "ends_conversation": true,
+          "expression_id": "",
+          "intentional_loop": false,
+          "node_id": "start",
+          "portrait_id": "",
+          "speaker_name_override": "",
+          "speaker_npc_id": "justice_starting_guard",
+          "text": "Stand clear, wanderer. Justice has no quarrel with you unless you make one. Aid our cause, and we may speak again."
+        }
+      ],
+      "owning_map_id": "forest",
+      "player_may_exit": true,
+      "starting_node_id": "start"
+    },
+    {
+      "conversation_id": "justice_guard_allied",
+      "default_cinematic_id": "",
+      "display_name": "Justice Guard - Allied",
+      "fallback_text": "They have nothing to say right now.",
+      "lock_local_input": true,
+      "nodes": [
+        {
+          "actions": [
+            {
+              "action_id": "offer_report",
+              "action_type": "offer_quest",
+              "amount": 0,
+              "requires_confirmation": false,
+              "secondary_id": "",
+              "target_id": "justice_report_to_commander",
+              "target_map_id": "",
+              "target_spawn_id": "",
+              "text_value": ""
+            }
+          ],
+          "automatic_next_node_id": "",
+          "choices": [],
+          "cinematic_cue_id": "",
+          "cinematic_id": "",
+          "condition_logic": "all",
+          "conditions": [],
+          "editor_position": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "ends_conversation": true,
+          "expression_id": "",
+          "intentional_loop": false,
+          "node_id": "start",
+          "portrait_id": "",
+          "speaker_name_override": "",
+          "speaker_npc_id": "justice_starting_guard",
+          "text": "Your service has been noticed. The commander will receive you. Report to the eastern command post."
+        }
+      ],
+      "owning_map_id": "forest",
+      "player_may_exit": true,
+      "starting_node_id": "start"
+    },
+    {
+      "conversation_id": "avenger_guard_neutral",
+      "default_cinematic_id": "",
+      "display_name": "Avenger Guard - Neutral",
+      "fallback_text": "They have nothing to say right now.",
+      "lock_local_input": true,
+      "nodes": [
+        {
+          "actions": [],
+          "automatic_next_node_id": "",
+          "choices": [],
+          "cinematic_cue_id": "",
+          "cinematic_id": "",
+          "condition_logic": "all",
+          "conditions": [],
+          "editor_position": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "ends_conversation": true,
+          "expression_id": "",
+          "intentional_loop": false,
+          "node_id": "start",
+          "portrait_id": "",
+          "speaker_name_override": "",
+          "speaker_npc_id": "avenger_starting_guard",
+          "text": "Keep walking unless you mean to settle a debt. Strike our enemies, and the Avengers will remember."
+        }
+      ],
+      "owning_map_id": "forest",
+      "player_may_exit": true,
+      "starting_node_id": "start"
+    },
+    {
+      "conversation_id": "avenger_guard_allied",
+      "default_cinematic_id": "",
+      "display_name": "Avenger Guard - Allied",
+      "fallback_text": "They have nothing to say right now.",
+      "lock_local_input": true,
+      "nodes": [
+        {
+          "actions": [
+            {
+              "action_id": "offer_report",
+              "action_type": "offer_quest",
+              "amount": 0,
+              "requires_confirmation": false,
+              "secondary_id": "",
+              "target_id": "avenger_report_to_commander",
+              "target_map_id": "",
+              "target_spawn_id": "",
+              "text_value": ""
+            }
+          ],
+          "automatic_next_node_id": "",
+          "choices": [],
+          "cinematic_cue_id": "",
+          "cinematic_id": "",
+          "condition_logic": "all",
+          "conditions": [],
+          "editor_position": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "ends_conversation": true,
+          "expression_id": "",
+          "intentional_loop": false,
+          "node_id": "start",
+          "portrait_id": "",
+          "speaker_name_override": "",
+          "speaker_npc_id": "avenger_starting_guard",
+          "text": "You have answered blood with blood. The commander wants your name. Report to the western command post."
+        }
+      ],
+      "owning_map_id": "forest",
+      "player_may_exit": true,
+      "starting_node_id": "start"
+    },
+    {
+      "conversation_id": "justice_commander_intro",
+      "default_cinematic_id": "",
+      "display_name": "Justice Commander Audience",
+      "fallback_text": "They have nothing to say right now.",
+      "lock_local_input": true,
+      "nodes": [
+        {
+          "actions": [],
+          "automatic_next_node_id": "",
+          "choices": [
+            {
+              "actions": [
+                {
+                  "action_id": "set_commander_met",
+                  "action_type": "set_flag",
+                  "amount": 0,
+                  "requires_confirmation": false,
+                  "secondary_id": "",
+                  "target_id": "justice_commander_met",
+                  "target_map_id": "",
+                  "target_spawn_id": "",
+                  "text_value": ""
+                },
+                {
+                  "action_id": "set_duty_response",
+                  "action_type": "set_flag",
+                  "amount": 0,
+                  "requires_confirmation": true,
+                  "secondary_id": "",
+                  "target_id": "justice_oath_response",
+                  "target_map_id": "",
+                  "target_spawn_id": "",
+                  "text_value": "duty"
+                },
+                {
+                  "action_id": "play_justice_intro_duty",
+                  "action_type": "start_cinematic",
+                  "amount": 0,
+                  "requires_confirmation": false,
+                  "secondary_id": "",
+                  "target_id": "justice_commander_audience",
+                  "target_map_id": "",
+                  "target_spawn_id": "",
+                  "text_value": ""
+                }
+              ],
+              "choice_id": "justice_is_duty",
+              "condition_logic": "all",
+              "conditions": [],
+              "destination_node_id": "duty_response",
+              "disabled_explanation": "",
+              "requires_confirmation": true,
+              "text": "Justice means answering every wrong."
+            },
+            {
+              "actions": [
+                {
+                  "action_id": "set_commander_met",
+                  "action_type": "set_flag",
+                  "amount": 0,
+                  "requires_confirmation": false,
+                  "secondary_id": "",
+                  "target_id": "justice_commander_met",
+                  "target_map_id": "",
+                  "target_spawn_id": "",
+                  "text_value": ""
+                },
+                {
+                  "action_id": "set_mercy_response",
+                  "action_type": "set_flag",
+                  "amount": 0,
+                  "requires_confirmation": true,
+                  "secondary_id": "",
+                  "target_id": "justice_oath_response",
+                  "target_map_id": "",
+                  "target_spawn_id": "",
+                  "text_value": "mercy"
+                },
+                {
+                  "action_id": "play_justice_intro_mercy",
+                  "action_type": "start_cinematic",
+                  "amount": 0,
+                  "requires_confirmation": false,
+                  "secondary_id": "",
+                  "target_id": "justice_commander_audience",
+                  "target_map_id": "",
+                  "target_spawn_id": "",
+                  "text_value": ""
+                }
+              ],
+              "choice_id": "justice_needs_mercy",
+              "condition_logic": "all",
+              "conditions": [],
+              "destination_node_id": "mercy_response",
+              "disabled_explanation": "",
+              "requires_confirmation": true,
+              "text": "Justice without mercy only creates another wrong."
+            }
+          ],
+          "cinematic_cue_id": "",
+          "cinematic_id": "",
+          "condition_logic": "all",
+          "conditions": [],
+          "editor_position": {
+            "x": 40.0,
+            "y": 80.0
+          },
+          "ends_conversation": false,
+          "expression_id": "",
+          "intentional_loop": false,
+          "node_id": "start",
+          "portrait_id": "",
+          "speaker_name_override": "",
+          "speaker_npc_id": "justice_commander",
+          "text": "You fought your way to this command post. Before I place soldiers under your banner, tell me: what does justice demand?"
+        },
+        {
+          "actions": [],
+          "automatic_next_node_id": "",
+          "choices": [],
+          "cinematic_cue_id": "",
+          "cinematic_id": "",
+          "condition_logic": "all",
+          "conditions": [],
+          "editor_position": {
+            "x": 470.0,
+            "y": 20.0
+          },
+          "ends_conversation": true,
+          "expression_id": "",
+          "intentional_loop": false,
+          "node_id": "duty_response",
+          "portrait_id": "",
+          "speaker_name_override": "",
+          "speaker_npc_id": "justice_commander",
+          "text": "Then carry the weight of every answer you demand. Welcome to the line."
+        },
+        {
+          "actions": [],
+          "automatic_next_node_id": "",
+          "choices": [],
+          "cinematic_cue_id": "",
+          "cinematic_id": "",
+          "condition_logic": "all",
+          "conditions": [],
+          "editor_position": {
+            "x": 470.0,
+            "y": 180.0
+          },
+          "ends_conversation": true,
+          "expression_id": "",
+          "intentional_loop": false,
+          "node_id": "mercy_response",
+          "portrait_id": "",
+          "speaker_name_override": "",
+          "speaker_npc_id": "justice_commander",
+          "text": "A dangerous answer in this army—and perhaps the one it most needs. Welcome to the line."
+        }
+      ],
+      "owning_map_id": "forest",
+      "player_may_exit": true,
+      "starting_node_id": "start"
+    },
+    {
+      "conversation_id": "justice_commander_repeat",
+      "default_cinematic_id": "",
+      "display_name": "Justice Commander - Repeat",
+      "fallback_text": "They have nothing to say right now.",
+      "lock_local_input": true,
+      "nodes": [
+        {
+          "actions": [],
+          "automatic_next_node_id": "",
+          "choices": [],
+          "cinematic_cue_id": "",
+          "cinematic_id": "",
+          "condition_logic": "all",
+          "conditions": [],
+          "editor_position": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "ends_conversation": true,
+          "expression_id": "",
+          "intentional_loop": false,
+          "node_id": "start",
+          "portrait_id": "",
+          "speaker_name_override": "",
+          "speaker_npc_id": "justice_commander",
+          "text": "Hold the line, Knight. Every life we protect is an answer stronger than steel."
+        }
+      ],
+      "owning_map_id": "forest",
+      "player_may_exit": true,
+      "starting_node_id": "start"
+    },
+    {
+      "conversation_id": "avenger_commander_intro",
+      "default_cinematic_id": "",
+      "display_name": "Avenger Commander Audience",
+      "fallback_text": "They have nothing to say right now.",
+      "lock_local_input": true,
+      "nodes": [
+        {
+          "actions": [],
+          "automatic_next_node_id": "",
+          "choices": [
+            {
+              "actions": [
+                {
+                  "action_id": "set_commander_met",
+                  "action_type": "set_flag",
+                  "amount": 0,
+                  "requires_confirmation": false,
+                  "secondary_id": "",
+                  "target_id": "avenger_commander_met",
+                  "target_map_id": "",
+                  "target_spawn_id": "",
+                  "text_value": ""
+                },
+                {
+                  "action_id": "set_debt_response",
+                  "action_type": "set_flag",
+                  "amount": 0,
+                  "requires_confirmation": true,
+                  "secondary_id": "",
+                  "target_id": "avenger_oath_response",
+                  "target_map_id": "",
+                  "target_spawn_id": "",
+                  "text_value": "debt"
+                },
+                {
+                  "action_id": "play_avenger_intro_debt",
+                  "action_type": "start_cinematic",
+                  "amount": 0,
+                  "requires_confirmation": false,
+                  "secondary_id": "",
+                  "target_id": "avenger_commander_audience",
+                  "target_map_id": "",
+                  "target_spawn_id": "",
+                  "text_value": ""
+                }
+              ],
+              "choice_id": "vengeance_pays_debt",
+              "condition_logic": "all",
+              "conditions": [],
+              "destination_node_id": "debt_response",
+              "disabled_explanation": "",
+              "requires_confirmation": true,
+              "text": "Every fallen Avenger is a debt that must be paid."
+            },
+            {
+              "actions": [
+                {
+                  "action_id": "set_commander_met",
+                  "action_type": "set_flag",
+                  "amount": 0,
+                  "requires_confirmation": false,
+                  "secondary_id": "",
+                  "target_id": "avenger_commander_met",
+                  "target_map_id": "",
+                  "target_spawn_id": "",
+                  "text_value": ""
+                },
+                {
+                  "action_id": "set_end_cycle_response",
+                  "action_type": "set_flag",
+                  "amount": 0,
+                  "requires_confirmation": true,
+                  "secondary_id": "",
+                  "target_id": "avenger_oath_response",
+                  "target_map_id": "",
+                  "target_spawn_id": "",
+                  "text_value": "end_cycle"
+                },
+                {
+                  "action_id": "play_avenger_intro_end",
+                  "action_type": "start_cinematic",
+                  "amount": 0,
+                  "requires_confirmation": false,
+                  "secondary_id": "",
+                  "target_id": "avenger_commander_audience",
+                  "target_map_id": "",
+                  "target_spawn_id": "",
+                  "text_value": ""
+                }
+              ],
+              "choice_id": "vengeance_must_end",
+              "condition_logic": "all",
+              "conditions": [],
+              "destination_node_id": "end_response",
+              "disabled_explanation": "",
+              "requires_confirmation": true,
+              "text": "A debt that never ends is a chain. Someone must break it."
+            }
+          ],
+          "cinematic_cue_id": "",
+          "cinematic_id": "",
+          "condition_logic": "all",
+          "conditions": [],
+          "editor_position": {
+            "x": 40.0,
+            "y": 80.0
+          },
+          "ends_conversation": false,
+          "expression_id": "",
+          "intentional_loop": false,
+          "node_id": "start",
+          "portrait_id": "",
+          "speaker_name_override": "",
+          "speaker_npc_id": "avenger_commander",
+          "text": "You spilled blood beside us and earned this audience. Before I trust you with soldiers, tell me: what is vengeance?"
+        },
+        {
+          "actions": [],
+          "automatic_next_node_id": "",
+          "choices": [],
+          "cinematic_cue_id": "",
+          "cinematic_id": "",
+          "condition_logic": "all",
+          "conditions": [],
+          "editor_position": {
+            "x": 470.0,
+            "y": 20.0
+          },
+          "ends_conversation": true,
+          "expression_id": "",
+          "intentional_loop": false,
+          "node_id": "debt_response",
+          "portrait_id": "",
+          "speaker_name_override": "",
+          "speaker_npc_id": "avenger_commander",
+          "text": "Then remember every name. An Avenger who forgets the fallen has already betrayed them."
+        },
+        {
+          "actions": [],
+          "automatic_next_node_id": "",
+          "choices": [],
+          "cinematic_cue_id": "",
+          "cinematic_id": "",
+          "condition_logic": "all",
+          "conditions": [],
+          "editor_position": {
+            "x": 470.0,
+            "y": 180.0
+          },
+          "ends_conversation": true,
+          "expression_id": "",
+          "intentional_loop": false,
+          "node_id": "end_response",
+          "portrait_id": "",
+          "speaker_name_override": "",
+          "speaker_npc_id": "avenger_commander",
+          "text": "Bold words. Find the end of this chain without abandoning our dead, and I may follow you there."
+        }
+      ],
+      "owning_map_id": "forest",
+      "player_may_exit": true,
+      "starting_node_id": "start"
+    },
+    {
+      "conversation_id": "avenger_commander_repeat",
+      "default_cinematic_id": "",
+      "display_name": "Avenger Commander - Repeat",
+      "fallback_text": "They have nothing to say right now.",
+      "lock_local_input": true,
+      "nodes": [
+        {
+          "actions": [],
+          "automatic_next_node_id": "",
+          "choices": [],
+          "cinematic_cue_id": "",
+          "cinematic_id": "",
+          "condition_logic": "all",
+          "conditions": [],
+          "editor_position": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "ends_conversation": true,
+          "expression_id": "",
+          "intentional_loop": false,
+          "node_id": "start",
+          "portrait_id": "",
+          "speaker_name_override": "",
+          "speaker_npc_id": "avenger_commander",
+          "text": "Do not let the fallen become numbers. Remember why you fight."
+        }
+      ],
+      "owning_map_id": "forest",
+      "player_may_exit": true,
+      "starting_node_id": "start"
+    }
+  ],
+  "display_name": "Forest Warfront",
+  "enterable": true,
+  "factions": [
+    "player",
+    "enemy",
+    "justice",
+    "avenger",
+    "neutral"
+  ],
+  "map_id": "forest",
+  "physics_surfaces": [
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": false,
+      "position": {
+        "x": 7310.0,
+        "y": 678.5
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 20384.0,
+        "y": 329.0
+      },
+      "surface_id": "ground_main",
+      "surface_role": "floor"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": false,
+      "position": {
+        "x": 6044.5,
+        "y": -757.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 20513.0,
+        "y": 1672.0
+      },
+      "surface_id": "ground_upper",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": false,
+      "position": {
+        "x": 12401.0,
+        "y": -2867.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 10114.0,
+        "y": 2262.0
+      },
+      "surface_id": "ground_upper_2",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": false,
+      "position": {
+        "x": 1452.25,
+        "y": -2691.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 10107.5,
+        "y": 2613.0
+      },
+      "surface_id": "ground_upper_3",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": false,
+      "position": {
+        "x": -1902.875,
+        "y": -4557.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 1353.75,
+        "y": 1387.5
+      },
+      "surface_id": "ground_upper_4",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": false,
+      "position": {
+        "x": 16585.125,
+        "y": -4609.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 1353.75,
+        "y": 1387.5
+      },
+      "surface_id": "ground_upper_5",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 608.0,
+        "y": 390.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_01",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 923.0,
+        "y": 191.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_02",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 1264.0,
+        "y": 334.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_03",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 17186.0,
+        "y": 334.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_04",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 16782.0,
+        "y": 173.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_05",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 17088.0,
+        "y": -89.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_06",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 16549.0,
+        "y": -142.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_07",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 16257.0,
+        "y": -358.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_08",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 16747.0,
+        "y": -480.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_09",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 17206.0,
+        "y": -590.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_10",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 16853.0,
+        "y": -685.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_11",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 17210.0,
+        "y": -893.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_12",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 16902.0,
+        "y": -1064.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_13",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 17204.0,
+        "y": -1255.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_14",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 16636.0,
+        "y": -1305.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_15",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 17057.0,
+        "y": -1456.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_16",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 16836.0,
+        "y": -1580.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_17",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": -9272.0,
+        "y": -1845.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_18",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": -8957.0,
+        "y": -2044.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_19",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": -8616.0,
+        "y": -1901.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_20",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 7306.0,
+        "y": -1901.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_21",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 6902.0,
+        "y": -2062.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_22",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 7208.0,
+        "y": -2324.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_23",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 6669.0,
+        "y": -2377.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_24",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 6377.0,
+        "y": -2593.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_25",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 6867.0,
+        "y": -2715.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_26",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 7326.0,
+        "y": -2825.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_27",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 6973.0,
+        "y": -2920.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_28",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 7330.0,
+        "y": -3128.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_29",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 7022.0,
+        "y": -3299.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_30",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 7324.0,
+        "y": -3490.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_31",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 6756.0,
+        "y": -3540.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_32",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 7177.0,
+        "y": -3691.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 260.0,
+        "y": 16.0
+      },
+      "surface_id": "platform_33",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 6956.0,
+        "y": -3982.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 1011.0,
+        "y": 7.0
+      },
+      "surface_id": "platform_34",
+      "surface_role": "solid"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": false,
+      "position": {
+        "x": 11821.0,
+        "y": -1636.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 8912.0,
+        "y": 7.0
+      },
+      "surface_id": "ground_3",
+      "surface_role": "floor"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 9743.0,
+        "y": -3999.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 8912.0,
+        "y": 7.0
+      },
+      "surface_id": "justice_ground",
+      "surface_role": "floor"
+    },
+    {
+      "collision_layer": 1,
+      "collision_mask": 1,
+      "one_way": true,
+      "position": {
+        "x": 3382.0,
+        "y": -3999.0
+      },
+      "rotation": 0.0,
+      "shape": "rectangle",
+      "size": {
+        "x": 8912.0,
+        "y": 7.0
+      },
+      "surface_id": "avenger_ground",
+      "surface_role": "floor"
+    }
+  ],
+  "player_spawns": [
+    {
+      "position": {
+        "x": 7000.0,
+        "y": -4038.0
+      },
+      "spawn_id": "central_battle_spawn",
+      "surface_id": "justice_ground"
+    }
+  ],
+  "quest_givers": [
+    {
+      "ambient_lines": [],
+      "archetype_id": "npc",
+      "combatant_kind": "npc",
+      "conditional_conversations": [
+        {
+          "condition_logic": "all",
+          "conditions": [
+            {
+              "comparison": "equals",
+              "condition_id": "justice_faction",
+              "condition_type": "faction_is",
+              "negated": false,
+              "number_value": 0,
+              "quantity": 1,
+              "secondary_id": "",
+              "target_id": "justice",
+              "text_value": ""
+            },
+            {
+              "comparison": "equals",
+              "condition_id": "justice_reputation",
+              "condition_type": "reputation_at_least",
+              "negated": false,
+              "number_value": 100,
+              "quantity": 1,
+              "secondary_id": "",
+              "target_id": "justice",
+              "text_value": ""
+            }
+          ],
+          "conversation_id": "justice_guard_allied",
+          "entry_id": "justice_guard_allied_entry",
+          "one_time": false,
+          "priority": 100
+        }
+      ],
+      "conversation_priority": 0,
+      "default_conversation_id": "justice_guard_neutral",
+      "display_name": "Justice Guard",
+      "faction_id": "justice",
+      "interaction_radius": 96.0,
+      "npc_id": "justice_starting_guard",
+      "one_time_greeting": "",
+      "position": {
+        "x": 8500.0,
+        "y": -4038.0
+      },
+      "quest_ids": [
+        "justice_report_to_commander"
+      ],
+      "repeat_greeting": "",
+      "stat_overrides": {
+
+      },
+      "surface_id": "justice_ground",
+      "visual_id": "default_character"
+    },
+    {
+      "ambient_lines": [],
+      "archetype_id": "npc",
+      "combatant_kind": "npc",
+      "conditional_conversations": [
+        {
+          "condition_logic": "all",
+          "conditions": [
+            {
+              "comparison": "equals",
+              "condition_id": "justice_commander_not_met",
+              "condition_type": "flag_is_not_set",
+              "negated": false,
+              "number_value": 0,
+              "quantity": 1,
+              "secondary_id": "",
+              "target_id": "justice_commander_met",
+              "text_value": ""
+            },
+            {
+              "comparison": "equals",
+              "condition_id": "justice_commander_faction",
+              "condition_type": "faction_is",
+              "negated": false,
+              "number_value": 0,
+              "quantity": 1,
+              "secondary_id": "",
+              "target_id": "justice",
+              "text_value": ""
+            }
+          ],
+          "conversation_id": "justice_commander_intro",
+          "entry_id": "justice_commander_first_audience",
+          "one_time": true,
+          "priority": 100
+        },
+        {
+          "condition_logic": "all",
+          "conditions": [
+            {
+              "comparison": "equals",
+              "condition_id": "justice_commander_repeat_faction",
+              "condition_type": "faction_is",
+              "negated": false,
+              "number_value": 0,
+              "quantity": 1,
+              "secondary_id": "",
+              "target_id": "justice",
+              "text_value": ""
+            },
+            {
+              "comparison": "equals",
+              "condition_id": "justice_commander_already_met",
+              "condition_type": "flag_is_set",
+              "negated": false,
+              "number_value": 0,
+              "quantity": 1,
+              "secondary_id": "",
+              "target_id": "justice_commander_met",
+              "text_value": ""
+            }
+          ],
+          "conversation_id": "justice_commander_repeat",
+          "entry_id": "justice_commander_repeat_entry",
+          "one_time": false,
+          "priority": 50
+        }
+      ],
+      "conversation_priority": 0,
+      "default_conversation_id": "",
+      "display_name": "Justice Commander",
+      "faction_id": "justice",
+      "interaction_radius": 96.0,
+      "npc_id": "justice_commander",
+      "one_time_greeting": "",
+      "position": {
+        "x": 11000.0,
+        "y": -4038.0
+      },
+      "quest_ids": [],
+      "repeat_greeting": "",
+      "stat_overrides": {
+
+      },
+      "surface_id": "justice_ground",
+      "visual_id": "default_character"
+    },
+    {
+      "ambient_lines": [],
+      "archetype_id": "npc",
+      "combatant_kind": "npc",
+      "conditional_conversations": [
+        {
+          "condition_logic": "all",
+          "conditions": [
+            {
+              "comparison": "equals",
+              "condition_id": "avenger_faction",
+              "condition_type": "faction_is",
+              "negated": false,
+              "number_value": 0,
+              "quantity": 1,
+              "secondary_id": "",
+              "target_id": "avenger",
+              "text_value": ""
+            },
+            {
+              "comparison": "equals",
+              "condition_id": "avenger_reputation",
+              "condition_type": "reputation_at_least",
+              "negated": false,
+              "number_value": 100,
+              "quantity": 1,
+              "secondary_id": "",
+              "target_id": "avenger",
+              "text_value": ""
+            }
+          ],
+          "conversation_id": "avenger_guard_allied",
+          "entry_id": "avenger_guard_allied_entry",
+          "one_time": false,
+          "priority": 100
+        }
+      ],
+      "conversation_priority": 0,
+      "default_conversation_id": "avenger_guard_neutral",
+      "display_name": "Avenger Guard",
+      "faction_id": "avenger",
+      "interaction_radius": 96.0,
+      "npc_id": "avenger_starting_guard",
+      "one_time_greeting": "",
+      "position": {
+        "x": 4200.0,
+        "y": -4038.0
+      },
+      "quest_ids": [
+        "avenger_report_to_commander"
+      ],
+      "repeat_greeting": "",
+      "stat_overrides": {
+
+      },
+      "surface_id": "avenger_ground",
+      "visual_id": "default_character"
+    },
+    {
+      "ambient_lines": [],
+      "archetype_id": "npc",
+      "combatant_kind": "npc",
+      "conditional_conversations": [
+        {
+          "condition_logic": "all",
+          "conditions": [
+            {
+              "comparison": "equals",
+              "condition_id": "avenger_commander_not_met",
+              "condition_type": "flag_is_not_set",
+              "negated": false,
+              "number_value": 0,
+              "quantity": 1,
+              "secondary_id": "",
+              "target_id": "avenger_commander_met",
+              "text_value": ""
+            },
+            {
+              "comparison": "equals",
+              "condition_id": "avenger_commander_faction",
+              "condition_type": "faction_is",
+              "negated": false,
+              "number_value": 0,
+              "quantity": 1,
+              "secondary_id": "",
+              "target_id": "avenger",
+              "text_value": ""
+            }
+          ],
+          "conversation_id": "avenger_commander_intro",
+          "entry_id": "avenger_commander_first_audience",
+          "one_time": true,
+          "priority": 100
+        },
+        {
+          "condition_logic": "all",
+          "conditions": [
+            {
+              "comparison": "equals",
+              "condition_id": "avenger_commander_repeat_faction",
+              "condition_type": "faction_is",
+              "negated": false,
+              "number_value": 0,
+              "quantity": 1,
+              "secondary_id": "",
+              "target_id": "avenger",
+              "text_value": ""
+            },
+            {
+              "comparison": "equals",
+              "condition_id": "avenger_commander_already_met",
+              "condition_type": "flag_is_set",
+              "negated": false,
+              "number_value": 0,
+              "quantity": 1,
+              "secondary_id": "",
+              "target_id": "avenger_commander_met",
+              "text_value": ""
+            }
+          ],
+          "conversation_id": "avenger_commander_repeat",
+          "entry_id": "avenger_commander_repeat_entry",
+          "one_time": false,
+          "priority": 50
+        }
+      ],
+      "conversation_priority": 0,
+      "default_conversation_id": "",
+      "display_name": "Avenger Commander",
+      "faction_id": "avenger",
+      "interaction_radius": 96.0,
+      "npc_id": "avenger_commander",
+      "one_time_greeting": "",
+      "position": {
+        "x": 2500.0,
+        "y": -4038.0
+      },
+      "quest_ids": [],
+      "repeat_greeting": "",
+      "stat_overrides": {
+
+      },
+      "surface_id": "avenger_ground",
+      "visual_id": "default_character"
+    }
+  ],
+  "quests": [
+    {
+      "completion_text": "You chose justice through action. Now prove you can serve it with discipline.",
+      "description": "Report to the Justice commander.",
+      "giver_npc_id": "justice_starting_guard",
+      "offer_text": "Your actions have reached the commander's ears. Report to the Justice warfront command post.",
+      "prerequisite_quest_ids": [
+        "sewer_find_exit"
+      ],
+      "quest_id": "justice_report_to_commander",
+      "repeatable": false,
+      "required_committed_faction_id": "justice",
+      "rewards": {
+        "gold": 25,
+        "justice_reputation": 10,
+        "xp": 50
+      },
+      "stages": [
+        {
+          "objective_type": "talk",
+          "required_count": 1,
+          "stage_id": "speak_to_justice_guard",
+          "target_archetype_id": "zombie",
+          "target_map_id": "",
+          "target_npc_id": "justice_starting_guard",
+          "target_spawn_id": "",
+          "target_transition_id": ""
+        },
+        {
+          "objective_type": "talk",
+          "required_count": 1,
+          "stage_id": "talk_to_justice_commander",
+          "target_archetype_id": "zombie",
+          "target_map_id": "",
+          "target_npc_id": "justice_commander",
+          "target_spawn_id": "",
+          "target_transition_id": ""
+        }
+      ],
+      "title": "Report to Justice"
+    },
+    {
+      "completion_text": "You answered blood with vengeance. Now show us you have the strength to endure the war.",
+      "description": "Report to the Avenger commander.",
+      "giver_npc_id": "avenger_starting_guard",
+      "offer_text": "The commander knows what you did for our fallen. Report to the Avenger warfront command post.",
+      "prerequisite_quest_ids": [
+        "sewer_find_exit"
+      ],
+      "quest_id": "avenger_report_to_commander",
+      "repeatable": false,
+      "required_committed_faction_id": "avenger",
+      "rewards": {
+        "avenger_reputation": 10,
+        "gold": 25,
+        "xp": 50
+      },
+      "stages": [
+        {
+          "objective_type": "talk",
+          "required_count": 1,
+          "stage_id": "speak_to_avenger_guard",
+          "target_archetype_id": "zombie",
+          "target_map_id": "",
+          "target_npc_id": "avenger_starting_guard",
+          "target_spawn_id": "",
+          "target_transition_id": ""
+        },
+        {
+          "objective_type": "talk",
+          "required_count": 1,
+          "stage_id": "talk_to_avenger_commander",
+          "target_archetype_id": "zombie",
+          "target_map_id": "",
+          "target_npc_id": "avenger_commander",
+          "target_spawn_id": "",
+          "target_transition_id": ""
+        }
+      ],
+      "title": "Report to Avenger"
+    }
+  ],
+  "story_flags": [
+    {
+      "category": "faction_story",
+      "default_value": false,
+      "description": "The player completed the first Justice commander audience.",
+      "display_name": "Met the Justice Commander",
+      "flag_id": "justice_commander_met",
+      "value_type": "boolean",
+      "visible_in_development": true
+    },
+    {
+      "category": "faction_story",
+      "default_value": "unanswered",
+      "description": "Records how the player answered the Justice commander.",
+      "display_name": "Justice Oath Response",
+      "flag_id": "justice_oath_response",
+      "value_type": "string",
+      "visible_in_development": true
+    },
+    {
+      "category": "faction_story",
+      "default_value": false,
+      "description": "The player completed the first Avenger commander audience.",
+      "display_name": "Met the Avenger Commander",
+      "flag_id": "avenger_commander_met",
+      "value_type": "boolean",
+      "visible_in_development": true
+    },
+    {
+      "category": "faction_story",
+      "default_value": "unanswered",
+      "description": "Records how the player answered the Avenger commander.",
+      "display_name": "Avenger Oath Response",
+      "flag_id": "avenger_oath_response",
+      "value_type": "string",
+      "visible_in_development": true
+    }
+  ],
+  "version": 6,
+  "world_id": "main_world"
+}
